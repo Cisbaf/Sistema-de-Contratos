@@ -7,21 +7,19 @@ import contratos.domain.Contract;
 import contratos.repository.ContractRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+
+@RequiredArgsConstructor
 @Service
 public class ContractService {
     private final ContractRepository contracts;
     private final UserRepository users;
-
-    public ContractService(ContractRepository contracts, UserRepository users) {
-        this.contracts = contracts;
-        this.users = users;
-    }
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
@@ -66,11 +64,21 @@ public class ContractService {
     private void apply(Contract contract, ContractRequest request) {
         Set<Long> ids = request.fiscalIds() == null ? Set.of() : request.fiscalIds();
         List<AppUser> selected = users.findAllById(ids);
-        if (selected.size() != ids.size()) throw new EntityNotFoundException("Um ou mais fiscais não foram encontrados");
-        contract.update(request.numberContract().trim(), request.numberProcess().trim(), request.object().trim(),
-                request.company().trim(), request.cnpjCpf().trim(), request.valueGlobal(), request.valueMensal(),
-                request.startDate(), request.endDate(), blankToNull(request.font()), blankToNull(request.ta()),
-                new LinkedHashSet<>(selected));
+
+        if (selected.size() != ids.size())
+            throw new EntityNotFoundException("Um ou mais fiscais não foram encontrados");
+
+        contract.update(request.numberContract().trim(),
+                request.numberProcess().trim(),
+                request.object().trim(),
+                request.company().trim(),
+                request.cnpjCpf().trim(),
+                request.valueGlobal(),
+                request.valueMensal(),
+                request.startDate(),
+                request.endDate(),
+                blankToNull(request.font()),
+                blankToNull(request.ta()), new LinkedHashSet<>(selected));
     }
 
     private void validateDates(ContractRequest request) {

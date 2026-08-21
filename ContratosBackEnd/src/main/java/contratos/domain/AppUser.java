@@ -1,33 +1,21 @@
 package contratos.domain;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.Table;
-import java.util.Collection;
-import java.util.List;
-
+import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-@Builder
+import java.util.Collection;
+import java.util.List;
+
 @Getter
-@Setter
 @Entity
-@AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "users")
 public class AppUser implements UserDetails {
     @Id
+    @Setter(AccessLevel.NONE)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
@@ -35,6 +23,7 @@ public class AppUser implements UserDetails {
     private String username;
 
     @Column(nullable = false)
+    @Setter(AccessLevel.NONE)
     private String password;
 
     @Column(nullable = false, length = 200)
@@ -50,14 +39,12 @@ public class AppUser implements UserDetails {
     @JoinColumn(name = "sector_id")
     private Sector sector;
 
+    @Setter(AccessLevel.NONE)
     @Column(nullable = false)
     private boolean admin;
 
-    /**
-     * Campo novo e inicialmente opcional para permitir a evolução do banco
-     * existente sem quebrar usuários antigos que ainda usam apenas admin.
-     */
     @Enumerated(EnumType.STRING)
+    @Setter(AccessLevel.NONE)
     @Column(length = 30)
     private PerfilUsuario perfil;
 
@@ -77,11 +64,22 @@ public class AppUser implements UserDetails {
         this.admin = perfil == PerfilUsuario.ADMIN;
     }
 
-    @Override public String getUsername() { return username; }
-    @Override public String getPassword() { return password; }
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+    public void rename(String name) {
+        this.name = name;
+    }
 
-    public boolean isAdmin() { return getPerfil() == PerfilUsuario.ADMIN; }
-    public PerfilUsuario getPerfil() { return perfil != null ? perfil : (admin ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL); }
+    public boolean isAdmin() {
+        return getPerfil() == PerfilUsuario.ADMIN;
+    }
+
+    public PerfilUsuario getPerfil() {
+        return perfil != null
+                ? perfil
+                : (admin ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL);
+    }
 
     public void update(String username, String name, String email, String cellPhone, Sector sector, boolean admin) {
         update(username, name, email, cellPhone, sector, admin ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL);

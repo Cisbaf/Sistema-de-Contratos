@@ -18,7 +18,7 @@ public record ContractRequest(
         @NotNull @DecimalMin("0.00") BigDecimal valueMensal,
         @NotNull LocalDate startDate,
         @NotNull LocalDate endDate,
-        @Size(max = 200) String font,
-        @Size(max = 10) String ta,
+        @Size(max = 200)  String font, //fonte de recurso
+        @Size(max = 10)  String ta, //termo aditivo
         Set<Long> fiscalIds
 ) {}

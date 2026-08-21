@@ -1,10 +1,12 @@
 # Controle de Contratos CISBAF
 
-O projeto foi migrado para uma arquitetura separada:
+O projeto está sendo evoluído para uma arquitetura separada:
 
-- `backend/`: Java 21, Spring Boot, Spring Security, JWT e JPA/MySQL;
-- `frontend/`: Next.js App Router, TypeScript e Material UI (MUI);
+- `ContratosBackEnd/`: Java 21, Spring Boot, Spring Security, JWT, JPA/MySQL, Lombok e Springdoc OpenAPI;
+- `ContratosFrontEnd/`: Next.js App Router, TypeScript e Material UI (MUI);
 - `src/`: código Django anterior, mantido temporariamente como referência para migração de dados.
+
+A referência funcional oficial é `especificacao_sistema_cisbaf.md`. O planejamento técnico está em `PLANO_EVOLUCAO_CISBAF.md`.
 
 ## Executar com Docker
 
@@ -26,19 +28,28 @@ O backend segue o mesmo tratamento do projeto Troca de Plantão: todos os endpoi
 
 O frontend utiliza rotas BFF em `/api/[...path]`: o JWT não fica disponível ao JavaScript do navegador e é encaminhado internamente ao Spring como Bearer token.
 
+## OpenAPI e Swagger
+
+O backend possui Springdoc OpenAPI. Rotas padrão:
+
+- especificação JSON: `http://localhost:8080/v3/api-docs`;
+- Swagger UI: `http://localhost:8080/swagger-ui/index.html`.
+
+Essas rotas ainda devem ser alinhadas à cadeia do Spring Security. Até essa decisão, podem exigir autenticação. A exposição em produção também precisa ser definida.
+
 ## Desenvolvimento sem Docker
 
 Backend (requer MySQL):
 
 ```bash
-cd backend
+cd ContratosBackEnd
 mvn spring-boot:run
 ```
 
 Frontend (requer Node.js 22):
 
 ```bash
-cd frontend
+cd ContratosFrontEnd
 npm install
 npm run dev
 ```

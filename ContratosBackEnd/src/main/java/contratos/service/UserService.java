@@ -55,7 +55,7 @@ public class UserService {
         user.update(request.email().trim().toLowerCase(), request.name().trim(), request.email().trim().toLowerCase(),
                 request.cellPhone(), getSector(request.sectorId()), perfil);
         if (request.password() != null && !request.password().isBlank()) {
-            user.setPassword(passwordEncoder.encode(request.password()));
+            user.changePassword(passwordEncoder.encode(request.password()));
         }
         return EntityMapper.user(user);
     }

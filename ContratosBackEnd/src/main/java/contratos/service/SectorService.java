@@ -39,7 +39,7 @@ public class SectorService {
     public SectorResponse update(Long id, SectorRequest request) {
         Sector sector = get(id);
         if (!sector.getName().equalsIgnoreCase(request.name().trim())) ensureUnique(request.name());
-        sector.setName(request.name().trim());
+        sector.rename(request.name().trim());
         return response(sector, users.countBySectorId(id));
     }
 
