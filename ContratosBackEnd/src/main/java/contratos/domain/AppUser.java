@@ -13,11 +13,18 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.util.Collection;
 import java.util.List;
+
+import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+@Builder
+@Getter
+@Setter
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "users")
 public class AppUser implements UserDetails {
     @Id
@@ -54,8 +61,6 @@ public class AppUser implements UserDetails {
     @Column(length = 30)
     private PerfilUsuario perfil;
 
-    protected AppUser() {}
-
     public AppUser(String username, String password, String name, String email, String cellPhone, Sector sector, boolean admin) {
         this(username, password, name, email, cellPhone, sector, admin ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL);
     }
@@ -72,13 +77,9 @@ public class AppUser implements UserDetails {
         this.admin = perfil == PerfilUsuario.ADMIN;
     }
 
-    public Long getId() { return id; }
     @Override public String getUsername() { return username; }
     @Override public String getPassword() { return password; }
-    public String getName() { return name; }
-    public String getEmail() { return email; }
-    public String getCellPhone() { return cellPhone; }
-    public Sector getSector() { return sector; }
+
     public boolean isAdmin() { return getPerfil() == PerfilUsuario.ADMIN; }
     public PerfilUsuario getPerfil() { return perfil != null ? perfil : (admin ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL); }
 
@@ -97,7 +98,6 @@ public class AppUser implements UserDetails {
         this.admin = perfil == PerfilUsuario.ADMIN;
     }
 
-    public void setPassword(String password) { this.password = password; }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

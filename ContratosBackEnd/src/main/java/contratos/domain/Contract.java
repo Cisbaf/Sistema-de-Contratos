@@ -10,12 +10,19 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
+import lombok.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "contracts")
 public class Contract {
     @Id
@@ -50,22 +57,6 @@ public class Contract {
             joinColumns = @JoinColumn(name = "contract_id"),
             inverseJoinColumns = @JoinColumn(name = "user_id"))
     private Set<AppUser> fiscais = new LinkedHashSet<>();
-
-    public Contract() {}
-
-    public Long getId() { return id; }
-    public String getNumberContract() { return numberContract; }
-    public String getNumberProcess() { return numberProcess; }
-    public String getObject() { return object; }
-    public String getCompany() { return company; }
-    public String getCnpjCpf() { return cnpjCpf; }
-    public BigDecimal getValueGlobal() { return valueGlobal; }
-    public BigDecimal getValueMensal() { return valueMensal; }
-    public LocalDate getStartDate() { return startDate; }
-    public LocalDate getEndDate() { return endDate; }
-    public String getFont() { return font; }
-    public String getTa() { return ta; }
-    public Set<AppUser> getFiscais() { return fiscais; }
 
     public void update(String numberContract, String numberProcess, String object, String company,
                        String cnpjCpf, BigDecimal valueGlobal, BigDecimal valueMensal,

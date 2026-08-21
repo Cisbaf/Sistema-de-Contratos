@@ -6,8 +6,15 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.*;
 
+
+@Builder
+@Getter
+@Setter
 @Entity
+@AllArgsConstructor
+@NoArgsConstructor
 @Table(name = "sectors")
 public class Sector {
     @Id
@@ -16,8 +23,6 @@ public class Sector {
 
     @Column(nullable = false, unique = true, length = 200)
     private String name;
-
-    protected Sector() {}
 
     public Sector(String name) {
         this.name = name;
