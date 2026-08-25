@@ -14,9 +14,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -73,8 +75,20 @@ public class ContractService {
     private void apply(Contract contract, ContractRequest request) {
         Set<Long> ids = request.fiscalIds();
         List<AppUser> selected = users.findAllById(ids);
+        var usersAntigos = contract.getFiscais().stream().map(AppUser::getId).collect(Collectors.toSet());
+        boolean match;
 
-        var match = selected.stream().anyMatch(select -> select.getPerfil() != PerfilUsuario.FISCAL);
+        if (!request.endDate().isBefore(LocalDate.now())) {
+            match = selected.stream()
+                    .anyMatch(user ->
+                            user.getPerfil() != PerfilUsuario.FISCAL);
+        } else {
+            match = selected.stream()
+                    .filter(user ->
+                            !usersAntigos.contains(user.getId()))
+                    .anyMatch(user ->
+                            user.getPerfil() != PerfilUsuario.FISCAL);
+        }
 
         if (selected.size() != ids.size() ) {
             throw new IllegalArgumentException("Um ou mais fiscais não foram encontrados");

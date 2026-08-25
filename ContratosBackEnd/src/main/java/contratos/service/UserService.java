@@ -9,6 +9,8 @@ import contratos.repository.ContractRepository;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,7 +55,7 @@ public class UserService {
         ensureUnique(request.email(), id);
         PerfilUsuario perfil = resolvePerfil(request);
 
-        if (contracts.existsByFiscaisId(user.getId()) && !perfil.equals(PerfilUsuario.FISCAL)){
+        if (contracts.existsByFiscaisIdAndEndDateGreaterThanEqual(user.getId(), LocalDate.now()) && !perfil.equals(PerfilUsuario.FISCAL)){
             throw new DataIntegrityViolationException("Fiscais com contratos ativos não podem mudar de perfil");
         }
 
