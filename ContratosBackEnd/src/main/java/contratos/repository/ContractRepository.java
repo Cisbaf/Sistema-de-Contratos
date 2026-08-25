@@ -1,11 +1,12 @@
 package contratos.repository;
 
 import contratos.domain.Contract;
-import java.util.List;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
 
 public interface ContractRepository extends JpaRepository<Contract, Long> {
     @Override
@@ -21,4 +22,10 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
     boolean existsForFiscal(@Param("contractId") Long contractId, @Param("username") String username);
 
     long countByFiscaisId(Long userId);
+
+    boolean existsByNumberContractIgnoreCase(String numberContract);
+
+    boolean existsByNumberContractIgnoreCaseAndIdNot(String numberContract, Long id);
+
+    boolean existsByFiscaisId(Long id);
 }

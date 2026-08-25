@@ -1,5 +1,6 @@
 package contratos.service;
 
+import contratos.domain.PerfilUsuario;
 import contratos.api.dto.ContractRequest;
 import contratos.api.dto.ContractResponse;
 import contratos.domain.AppUser;
@@ -8,6 +9,8 @@ import contratos.repository.ContractRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +42,9 @@ public class ContractService {
     @Transactional
     public ContractResponse create(ContractRequest request) {
         validateDates(request);
+        if (contracts.existsByNumberContractIgnoreCase(request.numberContract().trim())) {
+            throw new DataIntegrityViolationException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
+        }
         Contract contract = new Contract();
         apply(contract, request);
         return EntityMapper.contract(contracts.save(contract));
@@ -48,6 +54,9 @@ public class ContractService {
     public ContractResponse update(Long id, ContractRequest request) {
         validateDates(request);
         Contract contract = getContract(id);
+        if (contracts.existsByNumberContractIgnoreCaseAndIdNot(request.numberContract().trim(), contract.getId())) {
+            throw new DataIntegrityViolationException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
+        }
         apply(contract, request);
         return EntityMapper.contract(contract);
     }
@@ -62,17 +71,24 @@ public class ContractService {
     }
 
     private void apply(Contract contract, ContractRequest request) {
-        Set<Long> ids = request.fiscalIds() == null ? Set.of() : request.fiscalIds();
+        Set<Long> ids = request.fiscalIds();
         List<AppUser> selected = users.findAllById(ids);
 
-        if (selected.size() != ids.size())
-            throw new EntityNotFoundException("Um ou mais fiscais não foram encontrados");
+        var match = selected.stream().anyMatch(select -> select.getPerfil() != PerfilUsuario.FISCAL);
 
+        if (selected.size() != ids.size() ) {
+            throw new IllegalArgumentException("Um ou mais fiscais não foram encontrados");
+        }
+        if (match){
+            throw new IllegalArgumentException("Um ou mais usuários atribuídos não são fiscais");
+
+        }
+        
         contract.update(request.numberContract().trim(),
                 request.numberProcess().trim(),
                 request.object().trim(),
                 request.company().trim(),
-                request.cnpjCpf().trim(),
+                normalizeCnpj(request.cnpj().trim()),
                 request.valueGlobal(),
                 request.valueMensal(),
                 request.startDate(),
@@ -85,6 +101,10 @@ public class ContractService {
         if (request.endDate().isBefore(request.startDate())) {
             throw new IllegalArgumentException("A data final não pode ser anterior à data inicial");
         }
+    }
+
+    private String normalizeCnpj(String value) {
+        return value.replaceAll("\\D", "");
     }
 
     private String blankToNull(String value) {

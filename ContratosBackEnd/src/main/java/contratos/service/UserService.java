@@ -52,6 +52,11 @@ public class UserService {
         AppUser user = getUser(id);
         ensureUnique(request.email(), id);
         PerfilUsuario perfil = resolvePerfil(request);
+
+        if (contracts.existsByFiscaisId(user.getId()) && !perfil.equals(PerfilUsuario.FISCAL)){
+            throw new DataIntegrityViolationException("Fiscais com contratos ativos não podem mudar de perfil");
+        }
+
         user.update(request.email().trim().toLowerCase(), request.name().trim(), request.email().trim().toLowerCase(),
                 request.cellPhone(), getSector(request.sectorId()), perfil);
         if (request.password() != null && !request.password().isBlank()) {

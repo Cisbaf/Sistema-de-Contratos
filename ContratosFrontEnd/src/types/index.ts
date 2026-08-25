@@ -16,7 +16,7 @@ export interface Contract {
   numberProcess: string;
   object: string;
   company: string;
-  cnpjCpf: string;
+  cnpj: string;
   valueGlobal: number;
   valueMensal: number;
   fiscais: User[];
@@ -24,7 +24,10 @@ export interface Contract {
   endDate: string;
   font: string | null;
   ta: string | null;
+  status: ContractStatus
 }
+
+export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMAIL_ENVIADO" | "RENOVACAO_ABERTA_SEI";
 
 export interface AuthStatus {
   valid: boolean;

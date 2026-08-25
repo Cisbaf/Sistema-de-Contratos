@@ -17,7 +17,7 @@ public class Contract {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 200, unique = true)
     private String numberContract;
     @Column(nullable = false, length = 200)
     private String numberProcess;
@@ -25,8 +25,8 @@ public class Contract {
     private String object;
     @Column(nullable = false, length = 200)
     private String company;
-    @Column(nullable = false, length = 30)
-    private String cnpjCpf;
+    @Column(nullable = false, length = 14)
+    private String cnpj;
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal valueGlobal;
     @Column(nullable = false, precision = 19, scale = 2)
@@ -50,13 +50,13 @@ public class Contract {
     private Set<AppUser> fiscais = new LinkedHashSet<>();
 
     public void update(String numberContract, String numberProcess, String object, String company,
-                       String cnpjCpf, BigDecimal valueGlobal, BigDecimal valueMensal,
+                       String cnpj, BigDecimal valueGlobal, BigDecimal valueMensal,
                        LocalDate startDate, LocalDate endDate, String font, String ta, Set<AppUser> fiscais) {
         this.numberContract = numberContract;
         this.numberProcess = numberProcess;
         this.object = object;
         this.company = company;
-        this.cnpjCpf = cnpjCpf;
+        this.cnpj = cnpj;
         this.valueGlobal = valueGlobal;
         this.valueMensal = valueMensal;
         this.startDate = startDate;
