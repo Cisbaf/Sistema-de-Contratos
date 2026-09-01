@@ -16,32 +16,7 @@ files/
 # in your Git repository. Update and uncomment the following line accordingly.
 # <django-project-name>/staticfiles/
 
-### Django.Python Stack ###
-# Byte-compiled / optimized / DLL files
-*.py[cod]
-*$py.class
-db.sqlite3
-# C extensions
-*.so
-#i Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -629,79 +604,6 @@ ContratosBackEnd/.idea/misc.xml
 ContratosBackEnd/.idea/vcs.xml
 ContratosFrontEnd/public/.gitkeep
 ContratosFrontEnd/.dockerignore
-src/manage.py
-src/requirements.txt
-src/accounts/__init__.py
-src/accounts/admin.py
-src/accounts/apps.py
-src/accounts/forms.py
-src/accounts/models.py
-src/accounts/tests.py
-src/accounts/urls.py
-src/accounts/views.py
-src/accounts/migrations/__init__.py
-src/accounts/migrations/0001_initial.py
-src/accounts/migrations/0002_alter_customuser_sector.py
-src/accounts/migrations/0003_customuser_theme.py
-src/app/__init__.py
-src/app/asgi.py
-src/app/settings.py
-src/app/urls.py
-src/app/wsgi.py
-src/contracts/__init__.py
-src/contracts/admin.py
-src/contracts/apps.py
-src/contracts/models.py
-src/contracts/tests.py
-src/contracts/urls.py
-src/contracts/migrations/__init__.py
-src/contracts/migrations/0001_initial.py
-src/contracts/migrations/0002_rename_contract_contract_number_contract_cnpj_cpf_and_more.py
-src/contracts/migrations/0003_contract_value_mensal_alter_contract_value_global.py
-src/contracts/migrations/0004_rename_number_contract_number_contract_and_more.py
-src/contracts/migrations/0005_alter_contract_object.py
-src/contracts/migrations/0006_contract_ta.py
-src/contracts/migrations/0007_alter_contract_ta.py
-src/contracts/migrations/0008_alter_contract_ta.py
-src/contracts/migrations/0009_alter_contract_fiscais.py
-src/contracts/templates/contract_dash_contract.html
-src/contracts/templates/contract_dash_fiscais.html
-src/contracts/templates/contract_dash_index.html
-src/contracts/templates/contract_dash_sectors.html
-src/contracts/templates/contract_index.html
-src/contracts/templates/login_page.html
-src/contracts/templatetags/ __init__.py
-src/contracts/templatetags/contract_func.py
-src/contracts/views/view_contract.py
-src/contracts/views/view_dash.py
-src/contracts/views/view_sector.py
-src/contracts/views/views.py
-src/controller/request.py
-src/templates/parciais/contracts/_canvasContract.html
-src/templates/parciais/contracts/_canvasUser.html
-src/templates/parciais/contracts/_head_dash.html
-src/templates/parciais/contracts/_nav.html
-src/templates/static/contracts/base_dash.html
-src/templates/static/contracts/base.html
-src/templates/static/contracts/css/global.css
-src/templates/static/contracts/img/contrato.png
-src/templates/static/contracts/js/api.js
-src/templates/static/contracts/js/global.js
-src/templates/static/contracts/js/ofcanvasContract.js
-src/templates/static/contracts/js/ofcanvasFiscal.js
-src/templates/static/contracts/js/pageContract.js
-src/templates/static/contracts/js/pageFiscais.js
-src/templates/static/contracts/js/pageSectors.js
-src/templates/static/global/bootstrap.bundle.min.js
-src/templates/static/global/bootstrap.css
-src/templates/static/global/bootstrap.min.css
-src/templates/static/global/bootstrap.min.js
-src/templates/static/global/bootstrap5.min.css
-src/templates/static/global/bootstrap5.min.js
-src/templates/static/global/bs-stepper.min.css
-src/templates/static/global/font-awesome.min.css
-src/templates/static/global/jquery-3.3.1.slim.min.js
-src/templates/static/global/popper.min.js
 ContratosFrontEnd/.env.example
 Dockerfile
 ACORDO_DE_TRABALHO.md
