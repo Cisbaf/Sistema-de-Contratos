@@ -1,26 +1,23 @@
 "use client";
 
+import ConfirmDialog from "@/components/ConfirmDialog";
+import ContractFormDialog, { ContractFormPayload } from "@/components/contracts/ContractFormDialog";
+import { useAuth } from "@/components/DashboardShell";
+import { Feedback, PageLoading } from "@/components/Feedback";
+import PageHeader from "@/components/PageHeader";
+import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
+import { formatCnpj } from "@/lib/formatters";
+import type { Contract, User } from "@/types";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
-import { Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, IconButton, InputAdornment, InputLabel, MenuItem, OutlinedInput, Paper, Select, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import ConfirmDialog from "@/components/ConfirmDialog";
-import { Feedback, PageLoading } from "@/components/Feedback";
-import PageHeader from "@/components/PageHeader";
-import { useAuth } from "@/components/DashboardShell";
-import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
-import type { Contract, User } from "@/types";
-
-type ContractForm = {
-  numberContract: string; numberProcess: string; object: string; company: string; cnpj: string;
-  valueGlobal: string; valueMensal: string; startDate: string; endDate: string; font: string; ta: string; fiscalIds: number[];
-};
+import { Alert, Box, Chip, IconButton, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
+import { useEffect, useMemo, useState } from "react";
 
 const today = () => new Date().toISOString().slice(0, 10);
-const emptyForm = (): ContractForm => ({ numberContract: "", numberProcess: "", object: "", company: "", cnpj: "", valueGlobal: "", valueMensal: "", startDate: today(), endDate: today(), font: "", ta: "", fiscalIds: [] });
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const date = (value: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+
 
 export default function ContractsPage() {
   const auth = useAuth();
@@ -32,7 +29,6 @@ export default function ContractsPage() {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | null>(null);
-  const [form, setForm] = useState<ContractForm>(emptyForm());
   const [removing, setRemoving] = useState<Contract | null>(null);
   const [feedback, setFeedback] = useState({ message: "", error: false });
 
@@ -61,36 +57,45 @@ export default function ContractsPage() {
   const expiring = contracts.filter(item => { const days = (new Date(item.endDate).getTime() - Date.now()) / 86400000; return days >= 0 && days <= 60; }).length;
   const monthly = contracts.reduce((sum, item) => sum + Number(item.valueMensal), 0);
 
-  function create() { setEditing(null); setForm(emptyForm()); setOpen(true); }
+  function create() {
+    setEditing(null);
+    setOpen(true);
+  }
   function edit(item: Contract) {
-    setEditing(item); setForm({ numberContract: item.numberContract, numberProcess: item.numberProcess, object: item.object, company: item.company, cnpj: formatCnpj(item.cnpj), valueGlobal: String(item.valueGlobal), valueMensal: String(item.valueMensal), startDate: item.startDate, endDate: item.endDate, font: item.font ?? "", ta: item.ta ?? "", fiscalIds: item.fiscais.map(f => f.id) }); setOpen(true);
+    setEditing(item);
+    setOpen(true)
   }
-  function field<K extends keyof ContractForm>(key: K, value: ContractForm[K]) { setForm(current => ({ ...current, [key]: value })); }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  async function saveContract(payload: ContractFormPayload) {
     try {
-      const payload = { ...form, valueGlobal: Number(form.valueGlobal), valueMensal: Number(form.valueMensal) };
-      if (editing) await putJson(`/contracts/${editing.id}`, payload); else await postJson("/contracts", payload);
-      setOpen(false); setFeedback({ message: editing ? "Contrato atualizado" : "Contrato criado", error: false }); await load();
-    } catch (error) { setFeedback({ message: error instanceof Error ? error.message : "Erro ao salvar contrato", error: true }); }
-  }
+      if (editing) {
+        await putJson(`/contracts/${editing.id}`, payload);
+      } else {
+        await postJson("/contracts", payload);
+      }
 
+      setOpen(false);
+
+      setFeedback({
+        message: editing ? "Contrato atualizado" : "Contrato criado",
+        error: false,
+      });
+
+      await load();
+    } catch (error) {
+      setFeedback({
+        message:
+          error instanceof Error
+            ? error.message
+            : "Erro ao salvar contrato",
+        error: true,
+      });
+    }
+  }
   async function remove() {
     if (!removing) return;
     try { await deleteJson(`/contracts/${removing.id}`); setRemoving(null); setFeedback({ message: "Contrato excluído", error: false }); await load(); }
     catch (error) { setFeedback({ message: error instanceof Error ? error.message : "Erro ao excluir", error: true }); }
-  }
-  function formatCnpj(value: string) {
-
-    const cleaned = value.replace(/\D/g, '').slice(0, 14);
-
-    return cleaned
-      .replace(/^(\d{2})(\d)/, "$1.$2")
-      .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
-      .replace(/\.(\d{3})(\d)/, ".$1/$2")
-      .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
-
   }
 
   return <>
@@ -116,29 +121,14 @@ export default function ContractsPage() {
       </Table></TableContainer>}
     </Paper>
 
-    <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="md" component="form" onSubmit={submit}>
-      <DialogTitle>{editing ? "Editar contrato" : "Novo contrato"}</DialogTitle>
-      <DialogContent><Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, pt: 1 }}>
-        <TextField label="Número do contrato" value={form.numberContract} onChange={e => field("numberContract", e.target.value)} required />
-        <TextField label="Número do processo" value={form.numberProcess} onChange={e => field("numberProcess", e.target.value)} required />
-        <TextField label="Objeto do contrato" value={form.object} onChange={e => field("object", e.target.value)} required multiline minRows={3} sx={{ gridColumn: { sm: "1 / -1" } }} />
-        <TextField label="Empresa" value={form.company} onChange={e => field("company", e.target.value)} required />
-        <TextField label="CNPJ" value={form.cnpj}
-          onChange={e => field("cnpj", formatCnpj(e.target.value))} required
-          slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 18 } }}
-        />
-        <TextField label="Valor global" value={form.valueGlobal} onChange={e => field("valueGlobal", e.target.value)} type="number" required slotProps={{ htmlInput: { min: 0, step: ".01" } }} />
-        <TextField label="Valor mensal" value={form.valueMensal} onChange={e => field("valueMensal", e.target.value)} type="number" required slotProps={{ htmlInput: { min: 0, step: ".01" } }} />
-        <TextField label="Início da vigência" value={form.startDate} onChange={e => field("startDate", e.target.value)} type="date" required slotProps={{ inputLabel: { shrink: true } }} />
-        <TextField label="Fim da vigência" value={form.endDate} onChange={e => field("endDate", e.target.value)} type="date" required slotProps={{ inputLabel: { shrink: true } }} />
-        <TextField label="Fonte de recurso" value={form.font} onChange={e => field("font", e.target.value)} />
-        <TextField select label="Termo aditivo" value={form.ta} onChange={e => field("ta", e.target.value)}><MenuItem value="">Sem TA</MenuItem>{[1, 2, 3, 4, 5, 6].map(value => <MenuItem key={value} value={String(value)}>TA {value}</MenuItem>)}</TextField>
-        <FormControl sx={{ gridColumn: { sm: "1 / -1" } }}><InputLabel id="fiscais-label">Fiscais responsáveis</InputLabel><Select labelId="fiscais-label" multiple value={form.fiscalIds} onChange={event => field("fiscalIds", event.target.value as number[])} input={<OutlinedInput label="Fiscais responsáveis" />} renderValue={selected => selected.map(id => users.find(user => user.id === id)?.name).filter(Boolean).join(", ")}>
-          {users.map(user => <MenuItem key={user.id} value={user.id}>{user.name} ({user.sector?.name ?? "Sem setor"})</MenuItem>)}
-        </Select></FormControl>
-      </Box></DialogContent>
-      <DialogActions sx={{ p: 3 }}><Button onClick={() => setOpen(false)}>Cancelar</Button><Button type="submit" variant="contained">Salvar contrato</Button></DialogActions>
-    </Dialog>
+    <ContractFormDialog
+      open={open}
+      contract={editing}
+      users={users}
+      onClose={() => setOpen(false)}
+      onSubmit={saveContract}
+    />
+
     <ConfirmDialog open={Boolean(removing)} title="Excluir contrato?" text={`O contrato ${removing?.numberContract ?? ""} será removido permanentemente.`} onClose={() => setRemoving(null)} onConfirm={remove} />
     <Feedback message={feedback.message} error={feedback.error} onClose={() => setFeedback({ message: "", error: false })} />
   </>;
