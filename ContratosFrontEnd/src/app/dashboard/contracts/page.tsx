@@ -7,11 +7,12 @@ import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
 import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
 import { formatCnpj } from "@/lib/formatters";
-import type { Contract, User } from "@/types";
+import type { Contract, ContractStatus, User } from "@/types";
+import { AccountBalanceOutlined, DescriptionOutlined, EmailOutlined } from "@mui/icons-material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
-import { Alert, Box, Chip, IconButton, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Chip, ChipProps, IconButton, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -57,6 +58,26 @@ export default function ContractsPage() {
   const expiring = contracts.filter(item => { const days = (new Date(item.endDate).getTime() - Date.now()) / 86400000; return days >= 0 && days <= 60; }).length;
   const monthly = contracts.reduce((sum, item) => sum + Number(item.valueMensal), 0);
 
+  const contractStatusPresentation: Record<ContractStatus, { label: string; color: ChipProps["color"] }> = {
+    EM_VIGENCIA: {
+      label: "Em vigência",
+      color: "success",
+    },
+    AGUARDANDO_EMAIL_INTERESSE: {
+      label: "Aguardando e-mail de interesse",
+      color: "warning",
+    },
+    EMAIL_ENVIADO: {
+      label: "E-mail enviado",
+      color: "info",
+    },
+    RENOVACAO_ABERTA_SEI: {
+      label: "Renovação aberta no SEI",
+      color: "secondary",
+    },
+  }
+
+
   function create() {
     setEditing(null);
     setOpen(true);
@@ -101,24 +122,123 @@ export default function ContractsPage() {
   return <>
     <PageHeader title="Contratos" subtitle="Acompanhe vigências, valores e fiscais responsáveis." action={canManageContracts ? "Novo contrato" : undefined} onAction={create} />
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
-      {[{ label: "Total de contratos", value: contracts.length }, { label: "Contratos vigentes", value: active }, { label: "Valor mensal", value: money.format(monthly) }].map(card => <Paper key={card.label} variant="outlined" sx={{ p: 2.5 }}><Typography color="text.secondary" variant="body2">{card.label}</Typography><Typography variant="h5" fontWeight={800} mt={.5}>{card.value}</Typography></Paper>)}
+      {[{ label: "Total de contratos", value: contracts.length }, { label: "Contratos vigentes", value: active },
+      { label: "Valor mensal", value: money.format(monthly) }].map(card =>
+        <Paper key={card.label}
+          variant="outlined" sx={{ p: 2.5 }}><Typography color="text.secondary" variant="body2">{card.label}
+          </Typography>
+          <Typography variant="h5" fontWeight={800} mt={.5}>{card.value}</Typography>
+        </Paper>)}
     </Box>
     {expiring > 0 && <Alert severity="warning" sx={{ mb: 2 }}>{expiring} contrato(s) encerram nos próximos 60 dias.</Alert>}
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
-      <Box p={2}><TextField value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar contrato, empresa, processo ou fiscal" fullWidth slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }} /></Box>
-      {loading ? <PageLoading /> : <TableContainer><Table sx={{ minWidth: 1180 }}>
-        <TableHead><TableRow><TableCell>Contrato</TableCell><TableCell>Objeto / processo</TableCell><TableCell>Empresa</TableCell><TableCell>Valores</TableCell><TableCell>Fiscais</TableCell><TableCell>Vigência</TableCell><TableCell>Fonte / TA</TableCell><TableCell align="right">Ações</TableCell></TableRow></TableHead>
-        <TableBody>{filtered.map(item => <TableRow key={item.id} hover>
-          <TableCell><Typography fontWeight={700}>{item.numberContract}</Typography><Typography variant="caption" color="text.secondary">{formatCnpj(item.cnpj)}</Typography></TableCell>
-          <TableCell sx={{ maxWidth: 260 }}><Tooltip title={item.object}><Typography noWrap>{item.object}</Typography></Tooltip><Typography variant="caption" color="text.secondary">Processo {item.numberProcess}</Typography></TableCell>
-          <TableCell>{item.company}</TableCell>
-          <TableCell><Typography variant="body2">Global: {money.format(item.valueGlobal)}</Typography><Typography variant="caption" color="text.secondary">Mensal: {money.format(item.valueMensal)}</Typography></TableCell>
-          <TableCell><Stack direction="row" gap={.5} flexWrap="wrap">{item.fiscais.length ? item.fiscais.map(fiscal => <Chip key={fiscal.id} label={fiscal.name} size="small" />) : <Typography variant="caption" color="text.secondary">Não definido</Typography>}</Stack></TableCell>
-          <TableCell><Typography variant="body2">{date(item.startDate)} a</Typography><Typography variant="body2">{date(item.endDate)}</Typography></TableCell>
-          <TableCell>{item.font || "—"}{item.ta && <Chip label={`TA ${item.ta}`} size="small" sx={{ ml: 1 }} />}</TableCell>
-          <TableCell align="right">{canManageContracts && <IconButton onClick={() => edit(item)}><EditOutlinedIcon /></IconButton>}{isAdmin && <IconButton color="error" onClick={() => setRemoving(item)}><DeleteOutlineIcon /></IconButton>}</TableCell>
-        </TableRow>)}{filtered.length === 0 && <TableRow><TableCell colSpan={8} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum contrato encontrado.</TableCell></TableRow>}</TableBody>
-      </Table></TableContainer>}
+      <Box p={2}>
+        <TextField value={search} onChange={event => setSearch(event.target.value)}
+          placeholder="Buscar contrato, empresa, processo ou fiscal" fullWidth
+          slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }} />
+      </Box>
+      {loading ? <PageLoading /> :
+        <TableContainer>
+          <Table sx={{ minWidth: 1580 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Contrato</TableCell>
+                <TableCell>Objeto / processo</TableCell>
+                <TableCell>Empresa</TableCell>
+                <TableCell>Valores</TableCell>
+                <TableCell>Fiscais</TableCell>
+                <TableCell>Vigência</TableCell>
+                <TableCell>Fonte / TA</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Ações</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {filtered.map(item => {
+
+                const status = contractStatusPresentation[item.status]
+
+                return (
+                  <TableRow key={item.id} hover>
+                    <TableCell>
+                      <Typography fontWeight={700}>{item.numberContract}</Typography>
+                      <Typography variant="caption" color="text.secondary">{formatCnpj(item.cnpj)}</Typography>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 260 }}>
+                      <Tooltip title={item.object}>
+                        <Typography noWrap>{item.object}</Typography>
+                      </Tooltip>
+                      <Typography variant="caption" color="text.secondary">Processo {item.numberProcess}</Typography>
+                    </TableCell>
+                    <TableCell>{item.company}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2">Global: {money.format(item.valueGlobal)}</Typography>
+                      <Typography variant="caption" color="text.secondary">Mensal: {money.format(item.valueMensal)}</Typography>
+                    </TableCell>
+                    <TableCell><Stack direction="row" gap={.5} flexWrap="wrap">
+                      {item.fiscais.length ? item.fiscais.map(fiscal => <Chip key={fiscal.id} label={fiscal.name} size="small" />) : <Typography variant="caption" color="text.secondary">Não definido</Typography>}
+                    </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{date(item.startDate)} a</Typography>
+                      <Typography variant="body2">{date(item.endDate)}</Typography>
+                    </TableCell>
+                    <TableCell>{item.font || "—"}{item.ta && <Chip label={`TA ${item.ta}`} size="small" sx={{ ml: 1 }} />}</TableCell>
+                    <TableCell> <Chip label={status.label} color={status.color} size="small" /> </TableCell>
+
+                    <TableCell align="right">
+                      <Stack direction="row" spacing={0.25} justifyContent="flex-end">
+                        <Tooltip title="Gerar e-mail de interesse">
+                          <span>
+                            <IconButton disabled aria-label="Gerar e-mail de interesse"> <EmailOutlined /></IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Gerar parecer">
+                          <span>
+                            <IconButton disabled aria-label="Gerar parecer"> <DescriptionOutlined /></IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title="Financeiro">
+                          <span>
+                            <IconButton disabled aria-label="Financeiro"> <AccountBalanceOutlined /></IconButton>
+                          </span>
+                        </Tooltip>
+
+                        {canManageContracts &&
+                          <Tooltip title="Editar">
+                            <span>
+                              <IconButton onClick={() => edit(item)}>
+                                <EditOutlinedIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+
+                        }
+                        {isAdmin &&
+                          <Tooltip title="Deletar contrato">
+                            <span>
+                              <IconButton color="error" onClick={() => setRemoving(item)}>
+                                <DeleteOutlineIcon />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+
+                        }
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                )
+              }
+              )}
+              {filtered.length === 0 &&
+                <TableRow>
+                  <TableCell colSpan={9} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum contrato encontrado.</TableCell>
+                </TableRow>
+              }
+            </TableBody>
+          </Table>
+        </TableContainer>
+      }
     </Paper>
 
     <ContractFormDialog
