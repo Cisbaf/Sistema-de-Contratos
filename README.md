@@ -1,5 +1,7 @@
 # Controle de Contratos CISBAF
 
+> Para retomar o desenvolvimento com uma IA ou outro modelo, leia primeiro o [contexto de continuidade](CONTEXTO_IA.md). Ele registra decisões, estado atual, forma de trabalho e o próximo passo.
+
 O projeto está sendo evoluído para uma arquitetura separada:
 
 - `ContratosBackEnd/`: Java 21, Spring Boot, Spring Security, JWT, JPA/MySQL, Lombok e Springdoc OpenAPI;
