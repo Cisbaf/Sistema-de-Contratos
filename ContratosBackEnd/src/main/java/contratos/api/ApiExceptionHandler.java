@@ -1,8 +1,8 @@
 package contratos.api;
 
+import contratos.api.dto.ApiErrorResponse;
+import contratos.exception.ConflictException;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,41 +12,51 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    ResponseEntity<Map<String, Object>> validation(MethodArgumentNotValidException exception) {
-        Map<String, String> fields = new LinkedHashMap<>();
+    ResponseEntity<ApiErrorResponse> validation(MethodArgumentNotValidException exception) {
+        Map<String,String> fields = new LinkedHashMap<>();
         exception.getBindingResult().getFieldErrors().forEach(error -> fields.put(error.getField(), error.getDefaultMessage()));
-        return ResponseEntity.badRequest().body(Map.of("message", "Dados inválidos", "fields", fields));
+        return ResponseEntity.badRequest().body(new ApiErrorResponse("Dados inválidos", fields));
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
-    ResponseEntity<Map<String, String>> notFound(EntityNotFoundException exception) {
+    ResponseEntity<ApiErrorResponse> notFound(EntityNotFoundException exception) {
         return response(HttpStatus.NOT_FOUND, exception.getMessage());
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    ResponseEntity<Map<String, String>> conflict(DataIntegrityViolationException exception) {
+    ResponseEntity<ApiErrorResponse> databaseConflict(DataIntegrityViolationException exception) {
+        return response(HttpStatus.CONFLICT, "Operação não pôde ser concluída por conflito de dados");
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    ResponseEntity<ApiErrorResponse> businessConflict(ConflictException exception) {
         return response(HttpStatus.CONFLICT, exception.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    ResponseEntity<Map<String, String>> badRequest(IllegalArgumentException exception) {
+    ResponseEntity<ApiErrorResponse> badRequest(IllegalArgumentException exception) {
         return response(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    ResponseEntity<Map<String, String>> unauthorized() {
+    ResponseEntity<ApiErrorResponse> unauthorized() {
         return response(HttpStatus.UNAUTHORIZED, "Usuário ou senha inválidos");
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
-    ResponseEntity<Map<String, String>> forbidden() {
+    ResponseEntity<ApiErrorResponse> forbidden() {
         return response(HttpStatus.FORBIDDEN, "Você não tem permissão para esta operação");
     }
 
-    private ResponseEntity<Map<String, String>> response(HttpStatus status, String message) {
-        return ResponseEntity.status(status).body(Map.of("message", message == null ? status.getReasonPhrase() : message));
+    private ResponseEntity<ApiErrorResponse> response(HttpStatus status, String message) {
+        String responseMessage = message == null ? status.getReasonPhrase() : message;
+        return ResponseEntity.status(status).body(new ApiErrorResponse(responseMessage));
     }
 }

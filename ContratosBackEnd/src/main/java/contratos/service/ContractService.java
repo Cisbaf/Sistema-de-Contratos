@@ -1,16 +1,15 @@
 package contratos.service;
 
-import contratos.domain.PerfilUsuario;
 import contratos.api.dto.ContractRequest;
 import contratos.api.dto.ContractResponse;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
+import contratos.domain.PerfilUsuario;
+import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +44,7 @@ public class ContractService {
     public ContractResponse create(ContractRequest request) {
         validateDates(request);
         if (contracts.existsByNumberContractIgnoreCase(request.numberContract().trim())) {
-            throw new DataIntegrityViolationException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
+            throw new ConflictException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
         }
         Contract contract = new Contract();
         apply(contract, request);
@@ -57,7 +56,7 @@ public class ContractService {
         validateDates(request);
         Contract contract = getContract(id);
         if (contracts.existsByNumberContractIgnoreCaseAndIdNot(request.numberContract().trim(), contract.getId())) {
-            throw new DataIntegrityViolationException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
+            throw new ConflictException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
         }
         apply(contract, request);
         return EntityMapper.contract(contract);
@@ -90,14 +89,14 @@ public class ContractService {
                             user.getPerfil() != PerfilUsuario.FISCAL);
         }
 
-        if (selected.size() != ids.size() ) {
+        if (selected.size() != ids.size()) {
             throw new IllegalArgumentException("Um ou mais fiscais não foram encontrados");
         }
-        if (match){
+        if (match) {
             throw new IllegalArgumentException("Um ou mais usuários atribuídos não são fiscais");
 
         }
-        
+
         contract.update(request.numberContract().trim(),
                 request.numberProcess().trim(),
                 request.object().trim(),

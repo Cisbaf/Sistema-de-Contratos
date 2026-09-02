@@ -4,15 +4,14 @@ import contratos.api.dto.LoginRequest;
 import contratos.api.dto.RegisterRequest;
 import contratos.domain.AppUser;
 import contratos.domain.Sector;
+import contratos.exception.ConflictException;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import contratos.security.JwtAuthenticationFilter;
 import contratos.security.JwtService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
-import java.time.Duration;
-import java.util.Map;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -20,13 +19,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.Duration;
+import java.util.Map;
 
 @RestController
+@SecurityRequirements
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthenticationManager authenticationManager;
@@ -60,7 +59,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<Map<String, String>> register(@RequestBody @Valid RegisterRequest request) {
         String email = request.email().trim().toLowerCase();
-        if (users.existsByUsername(email)) throw new DataIntegrityViolationException("Usuário já cadastrado");
+        if (users.existsByUsername(email)) throw new ConflictException("Usuário já cadastrado");
         Sector sector = sectors.findAll().stream().findFirst().orElseGet(() -> sectors.save(new Sector("Geral")));
         users.save(new AppUser(email, passwordEncoder.encode(request.password()), request.name().trim(), email, null, sector, false));
         return ResponseEntity.ok(Map.of("message", "User registered successfully", "username", email));

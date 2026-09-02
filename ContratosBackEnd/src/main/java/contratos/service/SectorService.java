@@ -3,13 +3,14 @@ package contratos.service;
 import contratos.api.dto.SectorRequest;
 import contratos.api.dto.SectorResponse;
 import contratos.domain.Sector;
+import contratos.exception.ConflictException;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import java.util.List;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class SectorService {
@@ -47,7 +48,7 @@ public class SectorService {
     public void delete(Long id) {
         Sector sector = get(id);
         if (users.countBySectorId(id) > 0) {
-            throw new DataIntegrityViolationException("O setor possui fiscais vinculados");
+            throw new ConflictException("O setor possui fiscais vinculados");
         }
         sectors.delete(sector);
     }
@@ -58,7 +59,7 @@ public class SectorService {
 
     private void ensureUnique(String name) {
         if (sectors.existsByNameIgnoreCase(name.trim())) {
-            throw new DataIntegrityViolationException("Setor já cadastrado");
+            throw new ConflictException("Setor já cadastrado");
         }
     }
 

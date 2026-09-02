@@ -3,19 +3,19 @@ package contratos.service;
 import contratos.api.dto.UserRequest;
 import contratos.api.dto.UserSummary;
 import contratos.domain.AppUser;
-import contratos.domain.Sector;
 import contratos.domain.PerfilUsuario;
+import contratos.domain.Sector;
+import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-
-import java.time.LocalDate;
-import java.util.List;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class UserService {
@@ -55,8 +55,8 @@ public class UserService {
         ensureUnique(request.email(), id);
         PerfilUsuario perfil = resolvePerfil(request);
 
-        if (contracts.existsByFiscaisIdAndEndDateGreaterThanEqual(user.getId(), LocalDate.now()) && !perfil.equals(PerfilUsuario.FISCAL)){
-            throw new DataIntegrityViolationException("Fiscais com contratos ativos não podem mudar de perfil");
+        if (contracts.existsByFiscaisIdAndEndDateGreaterThanEqual(user.getId(), LocalDate.now()) && !perfil.equals(PerfilUsuario.FISCAL)) {
+            throw new ConflictException("Fiscais com contratos ativos não podem mudar de perfil");
         }
 
         user.update(request.email().trim().toLowerCase(), request.name().trim(), request.email().trim().toLowerCase(),
@@ -71,7 +71,7 @@ public class UserService {
     public void delete(Long id) {
         AppUser user = getUser(id);
         if (contracts.countByFiscaisId(id) > 0) {
-            throw new DataIntegrityViolationException("O fiscal está vinculado a contratos");
+            throw new ConflictException("O fiscal está vinculado a contratos");
         }
         users.delete(user);
     }
@@ -86,7 +86,7 @@ public class UserService {
 
     private void ensureUnique(String email, Long ignoredId) {
         users.findByUsername(email.trim().toLowerCase()).ifPresent(existing -> {
-            if (!existing.getId().equals(ignoredId)) throw new DataIntegrityViolationException("E-mail já cadastrado");
+            if (!existing.getId().equals(ignoredId)) throw new ConflictException("E-mail já cadastrado");
         });
     }
 
