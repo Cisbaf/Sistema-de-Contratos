@@ -1,11 +1,13 @@
 package contratos.domain;
 
+import contratos.domain.enums.ContractStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
@@ -65,5 +67,26 @@ public class Contract {
         this.ta = ta;
         this.fiscais.clear();
         this.fiscais.addAll(fiscais);
+    }
+
+    public boolean updateStatusByDeadline(LocalDate referenceDate) {
+        Objects.requireNonNull(referenceDate, "A data de referência é obrigatória");
+
+        if (status != ContractStatus.EM_VIGENCIA) {
+            return false;
+        }
+
+        if (referenceDate.isAfter(endDate)) {
+            return false;
+        }
+
+        LocalDate sixMonthsBeforeEnd = endDate.minusMonths(6);
+
+        if (referenceDate.isBefore(sixMonthsBeforeEnd)) {
+            return false;
+        }
+
+        status = ContractStatus.AGUARDANDO_EMAIL_INTERESSE;
+        return true;
     }
 }

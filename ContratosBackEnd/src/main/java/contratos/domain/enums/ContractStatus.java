@@ -1,4 +1,4 @@
-package contratos.domain;
+package contratos.domain.enums;
 
 public enum ContractStatus {
     EM_VIGENCIA,

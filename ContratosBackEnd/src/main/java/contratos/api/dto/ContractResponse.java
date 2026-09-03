@@ -1,6 +1,6 @@
 package contratos.api.dto;
 
-import contratos.domain.ContractStatus;
+import contratos.domain.enums.ContractStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;

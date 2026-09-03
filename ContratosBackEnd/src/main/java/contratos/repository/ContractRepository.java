@@ -1,13 +1,15 @@
 package contratos.repository;
 
-import contratos.domain.Contract;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDate;
-import java.util.List;
+import contratos.domain.Contract;
+import contratos.domain.enums.ContractStatus;
 
 public interface ContractRepository extends JpaRepository<Contract, Long> {
     @Override
@@ -29,4 +31,6 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
     boolean existsByNumberContractIgnoreCaseAndIdNot(String numberContract, Long id);
 
     boolean existsByFiscaisIdAndEndDateGreaterThanEqual(Long userId, LocalDate date);
+
+    List<Contract> findAllByStatusAndEndDateGreaterThanEqual(ContractStatus status, LocalDate refDate);
 }

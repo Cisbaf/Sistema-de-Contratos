@@ -4,7 +4,7 @@ import contratos.api.dto.ContractRequest;
 import contratos.api.dto.ContractResponse;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
-import contratos.domain.PerfilUsuario;
+import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
 import contratos.repository.UserRepository;
@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
 public class ContractService {
     private final ContractRepository contracts;
     private final UserRepository users;
+    private final ContractStatusService contractStatusService;
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
@@ -48,7 +49,14 @@ public class ContractService {
         }
         Contract contract = new Contract();
         apply(contract, request);
-        return EntityMapper.contract(contracts.save(contract));
+        Contract savedContract = contracts.save(contract);
+
+        contractStatusService.updateByDeadline(
+                savedContract,
+                LocalDate.now()
+        );
+
+        return EntityMapper.contract(savedContract);
     }
 
     @Transactional
@@ -59,6 +67,12 @@ public class ContractService {
             throw new ConflictException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
         }
         apply(contract, request);
+
+        contractStatusService.updateByDeadline(
+                contract,
+                LocalDate.now()
+        );
+
         return EntityMapper.contract(contract);
     }
 
