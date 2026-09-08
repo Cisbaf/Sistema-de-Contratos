@@ -16,14 +16,15 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/document-templates")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'FISCAL')")
 public class DocumentTemplateController {
 
     private final DocumentTemplateService service;
 
     @GetMapping
-    public ResponseEntity<List<DocumentTemplateResponse>> findAll() {
-        return ResponseEntity.ok(service.findAll());
+    public ResponseEntity<List<DocumentTemplateResponse>> findAll(Principal principal) {
+
+        return ResponseEntity.ok(service.findAll(principal.getName()));
     }
 
     @PostMapping

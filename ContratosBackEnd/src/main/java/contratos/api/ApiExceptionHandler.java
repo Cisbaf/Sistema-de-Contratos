@@ -6,6 +6,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -20,7 +21,7 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<ApiErrorResponse> validation(MethodArgumentNotValidException exception) {
-        Map<String,String> fields = new LinkedHashMap<>();
+        Map<String, String> fields = new LinkedHashMap<>();
         exception.getBindingResult().getFieldErrors().forEach(error -> fields.put(error.getField(), error.getDefaultMessage()));
         return ResponseEntity.badRequest().body(new ApiErrorResponse("Dados inválidos", fields));
     }
@@ -51,7 +52,12 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(AuthorizationDeniedException.class)
-    ResponseEntity<ApiErrorResponse> forbidden() {
+    ResponseEntity<ApiErrorResponse> forbiddenPreRole() {
+        return response(HttpStatus.FORBIDDEN, "Você não tem permissão para esta operação");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ApiErrorResponse> forbiddenAccessOperation() {
         return response(HttpStatus.FORBIDDEN, "Você não tem permissão para esta operação");
     }
 
