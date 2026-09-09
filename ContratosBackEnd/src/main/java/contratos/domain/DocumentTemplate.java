@@ -19,7 +19,7 @@ public class DocumentTemplate {
     @Column(nullable = false, unique = true)
     private DocumentTemplateType templateType;
     @Lob
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
     @Column(nullable = false)
     private LocalDateTime updatedAt;
