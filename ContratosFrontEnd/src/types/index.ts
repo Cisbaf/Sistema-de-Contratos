@@ -29,6 +29,17 @@ export interface Contract {
 
 export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMAIL_ENVIADO" | "RENOVACAO_ABERTA_SEI";
 
+export type DocumentTemplateType = "INTEREST_EMAIL" | "TECHNICAL_OPINION" | "SUPPLIER_RENEWAL_EMAIL";
+
+export interface DocumentTemplate {
+  id: number;
+  templateType: DocumentTemplateType;
+  content: string;
+  updatedAt: string;
+  updatedById: number;
+  updatedByName: string;
+}
+
 export interface AuthStatus {
   valid: boolean;
   username?: string;

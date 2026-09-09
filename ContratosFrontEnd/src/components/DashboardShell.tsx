@@ -3,6 +3,7 @@
 import { getJson, postJson } from "@/lib/api";
 import type { AuthStatus } from "@/types";
 import ApartmentOutlinedIcon from "@mui/icons-material/ApartmentOutlined";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -18,6 +19,7 @@ export const useAuth = () => useContext(AuthContext);
 
 const items = [
   { href: "/dashboard/contracts", label: "Contratos", icon: <DescriptionOutlinedIcon />, hideFromFiscal: false },
+  { href: "/dashboard/templates", label: "Templates", icon: <ArticleOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/users", label: "Usuários", icon: <PeopleAltOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/sectors", label: "Setores", icon: <ApartmentOutlinedIcon />, hideFromFiscal: true },
 ];

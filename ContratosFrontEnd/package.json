@@ -11,11 +11,14 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@mdxeditor/editor": "^4.2.4",
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "next": "^16.2.10",
     "react": "^19.2.3",
-    "react-dom": "^19.2.3"
+    "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
