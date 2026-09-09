@@ -4,9 +4,9 @@ import contratos.domain.DocumentTemplate;
 import contratos.domain.enums.DocumentTemplateType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import java.util.Optional;
 
 public interface DocumentTemplateRepository extends JpaRepository<DocumentTemplate, Long> {
-    boolean existsBySectorIdAndTemplateType(Long sectorId, DocumentTemplateType templateType);
-    List<DocumentTemplate> findAllBySectorId(Long sectorId);
+    boolean existsByTemplateType(DocumentTemplateType templateType);
+    Optional<DocumentTemplate> findByTemplateType(DocumentTemplateType templateType);
 }

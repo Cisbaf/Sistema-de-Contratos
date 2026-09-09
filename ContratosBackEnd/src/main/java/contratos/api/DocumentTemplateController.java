@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/document-templates")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'FISCAL')")
+@PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
 public class DocumentTemplateController {
 
     private final DocumentTemplateService service;

@@ -10,14 +10,13 @@ import java.time.LocalDateTime;
 
 @Entity
 @Getter
-@Table(uniqueConstraints = @UniqueConstraint(columnNames = {"sector_id", "template_type"}))
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class DocumentTemplate {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private DocumentTemplateType templateType;
     @Lob
     @Column(nullable = false)
@@ -27,16 +26,12 @@ public class DocumentTemplate {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(nullable = false)
     private AppUser updatedBy;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(nullable = false)
-    private Sector sector;
 
-    public DocumentTemplate(DocumentTemplateType templateType, String content, LocalDateTime updatedAt, AppUser updatedBy, Sector sector) {
+    public DocumentTemplate(DocumentTemplateType templateType, String content, LocalDateTime updatedAt, AppUser updatedBy) {
         this.templateType = templateType;
         this.content = content;
         this.updatedAt = updatedAt;
         this.updatedBy = updatedBy;
-        this.sector = sector;
     }
 
     public void updateContent(String content, LocalDateTime updatedAt, AppUser updatedBy){

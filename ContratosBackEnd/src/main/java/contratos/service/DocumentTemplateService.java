@@ -5,12 +5,10 @@ import contratos.api.dto.DocumentTemplateResponse;
 import contratos.api.dto.DocumentTemplateUpdateRequest;
 import contratos.domain.AppUser;
 import contratos.domain.DocumentTemplate;
-import contratos.domain.Sector;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.DocumentTemplateRepository;
-import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -32,23 +30,15 @@ import java.util.regex.Pattern;
 public class DocumentTemplateService {
     private final DocumentTemplateRepository docRepository;
     private final UserRepository userRepository;
-    private final SectorRepository sectorRepository;
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{(\\w+)}}");
 
     @Transactional(readOnly = true)
-    public List<DocumentTemplateResponse> findAll(String nome) {
-        var user = userRepository.findByUsername(nome).orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
+    public List<DocumentTemplateResponse> findAll(String username) {
+        var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
 
-        switch (user.getPerfil()) {
-            case PerfilUsuario.ADMIN -> {
-                return docRepository.findAll().stream().map(DocumentTemplateService::toResponse).toList();
-            }
-            case PerfilUsuario.FISCAL -> {
-                return docRepository.findAllBySectorId(user.getSector().getId()).stream().map(DocumentTemplateService::toResponse).toList();
-            }
-            default -> throw new AccessDeniedException("Você não pode gerenciar templates deste setor");
-        }
+        ensureCanManage(user);
 
+        return docRepository.findAll().stream().map(DocumentTemplateService::toResponse).toList();
     }
 
     @Transactional
@@ -56,22 +46,19 @@ public class DocumentTemplateService {
         Objects.requireNonNull(request);
         Objects.requireNonNull(username);
 
-
-        var sector = sectorRepository.findById(request.sectorId()).orElseThrow(() -> new EntityNotFoundException("Setor não encontrado"));
-
         var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
 
-        ensureCanManage(user, sector);
+        ensureCanManage(user);
 
         validateVariables(request.content(), request.templateType());
 
-        if (docRepository.existsBySectorIdAndTemplateType(request.sectorId(), request.templateType())) {
+        if (docRepository.existsByTemplateType(request.templateType())) {
             throw new ConflictException(
-                    "Já existe um template desse tipo para o setor"
+                    "Já existe um template desse tipo"
             );
         }
 
-        var newTemplate = new DocumentTemplate(request.templateType(), request.content(), LocalDateTime.now(ZoneId.of("America/Sao_Paulo")), user, sector);
+        var newTemplate = new DocumentTemplate(request.templateType(), request.content(), LocalDateTime.now(ZoneId.of("America/Sao_Paulo")), user);
 
         return toResponse(docRepository.save(newTemplate));
     }
@@ -82,7 +69,8 @@ public class DocumentTemplateService {
         Objects.requireNonNull(username);
         var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
         var oldTemplate = docRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Template não encontrado"));
-        ensureCanManage(user, oldTemplate.getSector());
+
+        ensureCanManage(user);
 
         validateVariables(request.content(), oldTemplate.getTemplateType());
 
@@ -94,8 +82,6 @@ public class DocumentTemplateService {
     private static DocumentTemplateResponse toResponse(DocumentTemplate template) {
         return new DocumentTemplateResponse(
                 template.getId(),
-                template.getSector().getId(),
-                template.getSector().getName(),
                 template.getTemplateType(),
                 template.getContent(),
                 template.getUpdatedAt(),
@@ -103,6 +89,7 @@ public class DocumentTemplateService {
                 template.getUpdatedBy().getName()
         );
     }
+
     private void validateVariables(String content, DocumentTemplateType templateType){
 
         Set<String> permitidas = allowedVariables(templateType);
@@ -120,17 +107,12 @@ public class DocumentTemplateService {
         }
     }
 
-    private void ensureCanManage(AppUser user, Sector sector) {
-        if (user.getPerfil() == PerfilUsuario.ADMIN) {
-            return;
-        }
+    private void ensureCanManage(AppUser user) {
+        boolean podeGerenciar = user.getPerfil() == PerfilUsuario.ADMIN || user.getPerfil() == PerfilUsuario.CONTROLE_INTERNO;
 
-        boolean fiscalFromSameSector = user.getPerfil() == PerfilUsuario.FISCAL && user.getSector() != null &&
-                Objects.equals(user.getSector().getId(), sector.getId());
-
-        if (!fiscalFromSameSector) {
+        if (!podeGerenciar) {
             throw new AccessDeniedException(
-                    "Você não pode gerenciar templates deste setor"
+                    "Você não pode gerenciar templates"
             );
         }
     }
