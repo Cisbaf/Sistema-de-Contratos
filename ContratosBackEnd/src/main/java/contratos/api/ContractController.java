@@ -2,6 +2,7 @@ package contratos.api;
 
 import contratos.api.dto.ContractRequest;
 import contratos.api.dto.ContractResponse;
+import contratos.api.dto.InterestEmailPreviewResponse;
 import contratos.service.ContractService;
 import contratos.service.InterestEmailConfirmationService;
 import jakarta.validation.Valid;
@@ -48,6 +49,13 @@ public class ContractController {
     @PostMapping("{id}/interest-email/confirm")
     public ResponseEntity<String> confirmInterestEmail(@PathVariable Long id, Principal principal) {
         return ResponseEntity.ok(confirmationService.confirm(id, principal.getName()));
+    }
+
+    @GetMapping("/{id}/interest-email/preview")
+    @PreAuthorize("@contractAuthorization.isAssignedFiscal(#id, authentication)")
+    public ResponseEntity<InterestEmailPreviewResponse> previewInterestEmail(@PathVariable Long id) {
+        var content = confirmationService.previewInterestEmail(id);
+        return ResponseEntity.ok(new InterestEmailPreviewResponse(content));
     }
 
     @PutMapping("/{id}")

@@ -1,23 +1,8 @@
 package contratos.service;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import org.springframework.stereotype.Service;
-
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-
 import contratos.api.dto.GeneratedDocumentRequest;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
@@ -31,14 +16,27 @@ import contratos.repository.DocumentTemplateRepository;
 import contratos.repository.InterestEmailConfirmationRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class InterestEmailConfirmationService {
 
-    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{(\\w+)}}");
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{\\{((?:\\\\?\\w)+)}}");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter MONTH_YEAR_FMT = DateTimeFormatter.ofPattern("MM/yyyy");
 
@@ -57,9 +55,9 @@ public class InterestEmailConfirmationService {
                 .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado"));
 
 
-                        if (contract.getStatus() != ContractStatus.AGUARDANDO_EMAIL_INTERESSE) {
-    throw new ConflictException("Contrato não está aguardando envio de e-mail de interesse.");
-}
+        if (contract.getStatus() != ContractStatus.AGUARDANDO_EMAIL_INTERESSE) {
+            throw new ConflictException("Contrato não está aguardando envio de e-mail de interesse.");
+        }
 
         if (confirmationRepository.existsByContract_IdAndFiscal_Id(contractId, fiscal.getId())) {
             throw new ConflictException("Você já confirmou o envio deste e-mail.");
@@ -73,13 +71,21 @@ public class InterestEmailConfirmationService {
         long totalFiscais = contract.getFiscais().size();
 
 
-
         if (confirmadas < totalFiscais) {
             return "Confirmação registrada (%d de %d fiscais confirmaram).".formatted(confirmadas, totalFiscais);
         }
 
         gerarDocumentoFinal(contract, fiscal);
         return "Todos os fiscais confirmaram. E-mail de interesse gerado e contrato avançado.";
+    }
+
+    @Transactional(readOnly = true)
+    public String previewInterestEmail(Long contractId) {
+        var contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new EntityNotFoundException("Contrato não encontrado"));
+        var template = templateRepository.findByTemplateType(DocumentTemplateType.INTEREST_EMAIL)
+                .orElseThrow(() -> new EntityNotFoundException("Template de e-mail de interesse não cadastrado"));
+        return resolverPlaceholders(template.getContent(), contract);
     }
 
     private void gerarDocumentoFinal(Contract contract, AppUser ultimoConfirmante) {
@@ -117,10 +123,15 @@ public class InterestEmailConfirmationService {
         var matcher = PLACEHOLDER.matcher(content);
         var sb = new StringBuilder();
         while (matcher.find()) {
-            matcher.appendReplacement(sb, Matcher.quoteReplacement(valores.getOrDefault(matcher.group(1), "")));
+            String variavel = matcher.group(1).replace("\\", "");
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(valores.getOrDefault(variavel, "")));
         }
         matcher.appendTail(sb);
-        return sb.toString();
+        return removerEscapeMarkdown(sb.toString());
+    }
+
+    private String removerEscapeMarkdown(String texto) {
+        return texto.replaceAll("\\\\([\\\\`*_{}\\[\\]()#+\\-.!>])", "$1");
     }
 
     private String montarBlocoConfirmacao(Contract contract, List<InterestEmailConfirmation> confirmacoes) {
@@ -128,12 +139,12 @@ public class InterestEmailConfirmationService {
         var hoje = LocalDate.now(ZoneId.of("America/Sao_Paulo"));
         return """
                 **Confirmação de envio**
-
+                
                 Contrato: %s
                 Empresa: %s
                 CNPJ: %s
                 Mês/ano de geração: %s
-
+                
                 E-mail de interesse confirmado como enviado por: %s
                 """.formatted(contract.getNumberContract(), contract.getCompany(), contract.getCnpj(),
                 hoje.format(MONTH_YEAR_FMT), nomes);
