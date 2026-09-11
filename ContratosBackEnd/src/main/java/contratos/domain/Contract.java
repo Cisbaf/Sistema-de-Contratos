@@ -89,4 +89,13 @@ public class Contract {
         status = ContractStatus.AGUARDANDO_EMAIL_INTERESSE;
         return true;
     }
+
+    public boolean markInterestEmailSent() {
+        if (status != ContractStatus.AGUARDANDO_EMAIL_INTERESSE) {
+            return false;
+        }
+        status = ContractStatus.EMAIL_ENVIADO;
+        return true;
+    }
+
 }

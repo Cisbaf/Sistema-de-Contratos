@@ -3,26 +3,22 @@ package contratos.api;
 import contratos.api.dto.ContractRequest;
 import contratos.api.dto.ContractResponse;
 import contratos.service.ContractService;
+import contratos.service.InterestEmailConfirmationService;
 import jakarta.validation.Valid;
-import java.security.Principal;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
+import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/contracts")
 public class ContractController {
     private final ContractService service;
-
-    public ContractController(ContractService service) { this.service = service; }
+    private final InterestEmailConfirmationService confirmationService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
@@ -46,6 +42,12 @@ public class ContractController {
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
     public ResponseEntity<ContractResponse> create(@RequestBody @Valid ContractRequest request) {
         return ResponseEntity.ok(service.create(request));
+    }
+
+    @PreAuthorize("@contractAuthorization.isAssignedFiscal(#id, authentication)")
+    @PostMapping("{id}/interest-email/confirm")
+    public ResponseEntity<String> confirmInterestEmail(@PathVariable Long id, Principal principal) {
+        return ResponseEntity.ok(confirmationService.confirm(id, principal.getName()));
     }
 
     @PutMapping("/{id}")

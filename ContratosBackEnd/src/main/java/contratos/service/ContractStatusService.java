@@ -1,5 +1,6 @@
 package contratos.service;
 
+import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.ContractStatusHistory;
 import contratos.domain.enums.ContractStatus;
@@ -51,6 +52,20 @@ public class ContractStatusService {
             }
         }
         return updateContratos;
+    }
+
+    @Transactional
+    public boolean advanceAfterInterestEmailGenerated(Contract contract, AppUser user) {
+        var previousStatus = contract.getStatus();
+        var changed = contract.markInterestEmailSent();
+        if (!changed) return false;
+
+        repository.save(new ContractStatusHistory(
+                LocalDateTime.now(ZoneId.of("America/Sao_Paulo")),
+                user, contract, previousStatus, contract.getStatus(),
+                ContractStatusTrigger.INTEREST_EMAIL_GENERATED
+        ));
+        return true;
     }
 
     @Scheduled(
