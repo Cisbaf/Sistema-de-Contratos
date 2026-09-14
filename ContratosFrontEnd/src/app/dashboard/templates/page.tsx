@@ -3,7 +3,7 @@
 import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
 import { getJson, postJson, putJson } from "@/lib/api";
-import { fillPlaceholdersWithSampleData, TEMPLATE_TYPE_LABELS, TEMPLATE_TYPE_VARIABLES } from "@/lib/templatePlaceholders";
+import { prepareTemplatePreview, TEMPLATE_TYPE_LABELS, TEMPLATE_TYPE_VARIABLES } from "@/lib/templatePlaceholders";
 import type { DocumentTemplate, DocumentTemplateType } from "@/types";
 import { Alert, Box, Button, Chip, CircularProgress, Paper, Stack, Tab, Tabs, Tooltip, Typography } from "@mui/material";
 import dynamic from "next/dynamic";
@@ -74,7 +74,7 @@ export default function TemplatesPage() {
     }
   }
 
-  const previewMarkdown = fillPlaceholdersWithSampleData(content);
+  const previewMarkdown = prepareTemplatePreview(content);
 
   async function copyVariable(variable: string) {
     try {

@@ -57,3 +57,11 @@ export function fillPlaceholdersWithSampleData(content: string): string {
     return SAMPLE_VALUES[variable] ?? match;
   });
 }
+
+// Mantém a prévia consistente com a geração de documentos no backend. O
+// editor visual escapa caracteres de Markdown para preservá-los como texto,
+// mas, nesta tela, o conteúdo deve ser exibido já formatado.
+export function prepareTemplatePreview(content: string): string {
+  return fillPlaceholdersWithSampleData(content)
+    .replace(/\\([\\`*_{}\[\]()#+\-.!>])/g, "$1");
+}
