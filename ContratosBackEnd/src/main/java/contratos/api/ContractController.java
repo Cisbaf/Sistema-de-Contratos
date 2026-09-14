@@ -1,6 +1,6 @@
 package contratos.api;
 
-import contratos.api.dto.ContractRequest;
+import contratos.api.dto.Contract.ContractRequest;
 import contratos.api.dto.Contract.ContractResponse;
 import contratos.api.dto.InterestEmail.InterestEmailConfirmResponse;
 import contratos.api.dto.InterestEmail.InterestEmailPreviewResponse;

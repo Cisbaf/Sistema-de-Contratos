@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import contratos.api.dto.ContractRequest;
+import contratos.api.dto.Contract.ContractRequest;
 import contratos.api.dto.Contract.ContractResponse;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;

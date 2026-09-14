@@ -1,4 +1,4 @@
-package contratos.api.dto;
+package contratos.api.dto.Contract;
 
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.br.CNPJ;
