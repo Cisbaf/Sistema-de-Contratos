@@ -1,7 +1,7 @@
 package contratos.api;
 
-import contratos.api.dto.UserRequest;
-import contratos.api.dto.UserSummary;
+import contratos.api.dto.User.UserRequest;
+import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
 import contratos.service.EntityMapper;
 import contratos.service.UserService;

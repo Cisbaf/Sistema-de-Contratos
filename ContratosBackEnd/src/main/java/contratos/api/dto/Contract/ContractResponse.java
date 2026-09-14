@@ -1,9 +1,10 @@
-package contratos.api.dto;
+package contratos.api.dto.Contract;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import contratos.api.dto.User.UserSummary;
 import contratos.domain.enums.ContractStatus;
 
 public record ContractResponse(

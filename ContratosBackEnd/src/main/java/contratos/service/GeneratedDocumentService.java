@@ -8,10 +8,10 @@ import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import contratos.api.dto.GeneratedDocumentFile;
-import contratos.api.dto.GeneratedDocumentRequest;
-import contratos.api.dto.GeneratedDocumentResponse;
-import contratos.api.dto.UserSummary;
+import contratos.api.dto.GeneratedDocument.GeneratedDocumentFile;
+import contratos.api.dto.GeneratedDocument.GeneratedDocumentRequest;
+import contratos.api.dto.GeneratedDocument.GeneratedDocumentResponse;
+import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.GeneratedDocument;

@@ -1,4 +1,4 @@
-package contratos.api.dto;
+package contratos.api.dto.DocumentTemplate;
 
 import jakarta.validation.constraints.NotBlank;
 

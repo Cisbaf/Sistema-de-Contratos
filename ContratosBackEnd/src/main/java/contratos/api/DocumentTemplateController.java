@@ -1,8 +1,8 @@
 package contratos.api;
 
-import contratos.api.dto.DocumentTemplateCreateRequest;
-import contratos.api.dto.DocumentTemplateResponse;
-import contratos.api.dto.DocumentTemplateUpdateRequest;
+import contratos.api.dto.DocumentTemplate.DocumentTemplateCreateRequest;
+import contratos.api.dto.DocumentTemplate.DocumentTemplateResponse;
+import contratos.api.dto.DocumentTemplate.DocumentTemplateUpdateRequest;
 import contratos.service.DocumentTemplateService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

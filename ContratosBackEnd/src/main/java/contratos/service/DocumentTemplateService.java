@@ -1,8 +1,8 @@
 package contratos.service;
 
-import contratos.api.dto.DocumentTemplateCreateRequest;
-import contratos.api.dto.DocumentTemplateResponse;
-import contratos.api.dto.DocumentTemplateUpdateRequest;
+import contratos.api.dto.DocumentTemplate.DocumentTemplateCreateRequest;
+import contratos.api.dto.DocumentTemplate.DocumentTemplateResponse;
+import contratos.api.dto.DocumentTemplate.DocumentTemplateUpdateRequest;
 import contratos.domain.AppUser;
 import contratos.domain.DocumentTemplate;
 import contratos.domain.enums.DocumentTemplateType;

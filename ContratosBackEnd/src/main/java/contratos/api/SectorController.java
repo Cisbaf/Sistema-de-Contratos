@@ -1,7 +1,7 @@
 package contratos.api;
 
-import contratos.api.dto.SectorRequest;
-import contratos.api.dto.SectorResponse;
+import contratos.api.dto.Sector.SectorRequest;
+import contratos.api.dto.Sector.SectorResponse;
 import contratos.service.SectorService;
 import jakarta.validation.Valid;
 import java.util.List;

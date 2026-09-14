@@ -1,5 +1,6 @@
-package contratos.api.dto;
+package contratos.api.dto.GeneratedDocument;
 
+import contratos.api.dto.User.UserSummary;
 import contratos.domain.enums.DocumentFormat;
 import contratos.domain.enums.DocumentTemplateType;
 import jakarta.validation.constraints.NotBlank;

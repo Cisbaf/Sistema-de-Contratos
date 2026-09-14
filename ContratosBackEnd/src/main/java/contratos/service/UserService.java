@@ -1,7 +1,7 @@
 package contratos.service;
 
-import contratos.api.dto.UserRequest;
-import contratos.api.dto.UserSummary;
+import contratos.api.dto.User.UserRequest;
+import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.domain.Sector;

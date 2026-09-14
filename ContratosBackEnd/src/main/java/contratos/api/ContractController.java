@@ -1,9 +1,9 @@
 package contratos.api;
 
 import contratos.api.dto.ContractRequest;
-import contratos.api.dto.ContractResponse;
-import contratos.api.dto.InterestEmailConfirmResponse;
-import contratos.api.dto.InterestEmailPreviewResponse;
+import contratos.api.dto.Contract.ContractResponse;
+import contratos.api.dto.InterestEmail.InterestEmailConfirmResponse;
+import contratos.api.dto.InterestEmail.InterestEmailPreviewResponse;
 import contratos.service.ContractService;
 import contratos.service.InterestEmailConfirmationService;
 import jakarta.validation.Valid;

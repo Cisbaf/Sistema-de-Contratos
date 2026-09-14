@@ -1,7 +1,7 @@
 package contratos.service;
 
-import contratos.api.dto.SectorRequest;
-import contratos.api.dto.SectorResponse;
+import contratos.api.dto.Sector.SectorRequest;
+import contratos.api.dto.Sector.SectorResponse;
 import contratos.domain.Sector;
 import contratos.exception.ConflictException;
 import contratos.repository.SectorRepository;

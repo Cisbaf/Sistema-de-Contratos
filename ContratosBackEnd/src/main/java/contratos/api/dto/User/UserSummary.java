@@ -1,4 +1,4 @@
-package contratos.api.dto;
+package contratos.api.dto.User;
 
 public record UserSummary(
         Long id,

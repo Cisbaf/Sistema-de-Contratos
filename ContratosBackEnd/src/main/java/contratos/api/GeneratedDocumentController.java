@@ -1,7 +1,7 @@
 package contratos.api;
 
-import contratos.api.dto.GeneratedDocumentRequest;
-import contratos.api.dto.GeneratedDocumentResponse;
+import contratos.api.dto.GeneratedDocument.GeneratedDocumentRequest;
+import contratos.api.dto.GeneratedDocument.GeneratedDocumentResponse;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.service.GeneratedDocumentService;
 import jakarta.validation.Valid;

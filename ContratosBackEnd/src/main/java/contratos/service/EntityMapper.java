@@ -3,8 +3,8 @@ package contratos.service;
 import java.util.Comparator;
 import java.util.List;
 
-import contratos.api.dto.ContractResponse;
-import contratos.api.dto.UserSummary;
+import contratos.api.dto.Contract.ContractResponse;
+import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 

@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import contratos.api.dto.ContractRequest;
-import contratos.api.dto.ContractResponse;
+import contratos.api.dto.Contract.ContractResponse;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.enums.PerfilUsuario;

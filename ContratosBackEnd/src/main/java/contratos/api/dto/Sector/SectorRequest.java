@@ -1,4 +1,4 @@
-package contratos.api.dto;
+package contratos.api.dto.Sector;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

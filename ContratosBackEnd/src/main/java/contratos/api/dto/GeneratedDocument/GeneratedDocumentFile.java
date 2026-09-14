@@ -1,4 +1,4 @@
-package contratos.api.dto;
+package contratos.api.dto.GeneratedDocument;
 
 import contratos.domain.enums.DocumentFormat;
 

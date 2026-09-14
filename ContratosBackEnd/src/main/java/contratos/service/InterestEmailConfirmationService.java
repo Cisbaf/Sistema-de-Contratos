@@ -3,7 +3,7 @@ package contratos.service;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
-import contratos.api.dto.GeneratedDocumentRequest;
+import contratos.api.dto.GeneratedDocument.GeneratedDocumentRequest;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.InterestEmailConfirmation;
