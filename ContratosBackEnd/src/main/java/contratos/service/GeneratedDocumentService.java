@@ -1,5 +1,13 @@
 package contratos.service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import contratos.api.dto.GeneratedDocumentFile;
 import contratos.api.dto.GeneratedDocumentRequest;
 import contratos.api.dto.GeneratedDocumentResponse;
@@ -15,13 +23,6 @@ import contratos.repository.UserRepository;
 import contratos.security.ContractAuthorization;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PostAuthorize;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +78,7 @@ public class GeneratedDocumentService {
                 new UserSummary(
                         user.getId(),
                         user.getName(),
+                        user.getUsername(),
                         user.getEmail(),
                         user.getCellPhone(),
                         new UserSummary.SectorSummary(sector.getId(), sector.getName()),

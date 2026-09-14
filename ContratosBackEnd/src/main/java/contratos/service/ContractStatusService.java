@@ -7,6 +7,7 @@ import contratos.domain.enums.ContractStatus;
 import contratos.domain.enums.ContractStatusTrigger;
 import contratos.repository.ContractRepository;
 import contratos.repository.ContractStatusHistoryRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -84,4 +85,10 @@ public class ContractStatusService {
                 updated
         );
     }
+
+    @PostConstruct
+    public void executarAoIniciar() {
+        runDailyDeadlineUpdate();
+    }
+
 }

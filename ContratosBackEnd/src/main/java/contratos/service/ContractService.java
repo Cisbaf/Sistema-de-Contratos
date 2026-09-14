@@ -1,5 +1,14 @@
 package contratos.service;
 
+import java.time.LocalDate;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import contratos.api.dto.ContractRequest;
 import contratos.api.dto.ContractResponse;
 import contratos.domain.AppUser;
@@ -7,17 +16,10 @@ import contratos.domain.Contract;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
+import contratos.repository.InterestEmailConfirmationRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -25,20 +27,21 @@ public class ContractService {
     private final ContractRepository contracts;
     private final UserRepository users;
     private final ContractStatusService contractStatusService;
+    private final InterestEmailConfirmationRepository interestRepository;
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
-        return contracts.findAll().stream().map(EntityMapper::contract).toList();
+        return contracts.findAll().stream().map(contract -> EntityMapper.contract(contract, getConfirmadosId(contract.getId()))).toList();
     }
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findMine(String username) {
-        return contracts.findDistinctByFiscaisUsername(username).stream().map(EntityMapper::contract).toList();
+        return contracts.findDistinctByFiscaisUsername(username).stream().map(contract -> EntityMapper.contract(contract, getConfirmadosId(contract.getId()))).toList();
     }
 
     @Transactional(readOnly = true)
     public ContractResponse findById(Long id) {
-        return EntityMapper.contract(getContract(id));
+        return EntityMapper.contract(getContract(id), getConfirmadosId(id));
     }
 
     @Transactional
@@ -56,7 +59,7 @@ public class ContractService {
                 LocalDate.now()
         );
 
-        return EntityMapper.contract(savedContract);
+        return EntityMapper.contract(savedContract, List.of());
     }
 
     @Transactional
@@ -73,12 +76,17 @@ public class ContractService {
                 LocalDate.now()
         );
 
-        return EntityMapper.contract(contract);
+        return EntityMapper.contract(contract, getConfirmadosId(id));
     }
 
     @Transactional
     public void delete(Long id) {
         contracts.delete(getContract(id));
+    }
+
+    private List<Long> getConfirmadosId(Long contractId){
+        return interestRepository.findByContract_Id(contractId)
+        .stream().map(confirmation -> confirmation.getFiscal().getId()).toList();
     }
 
     private Contract getContract(Long id) {

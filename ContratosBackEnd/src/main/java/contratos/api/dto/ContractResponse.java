@@ -1,10 +1,10 @@
 package contratos.api.dto;
 
-import contratos.domain.enums.ContractStatus;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
+import contratos.domain.enums.ContractStatus;
 
 public record ContractResponse(
         Long id,
@@ -20,5 +20,6 @@ public record ContractResponse(
         LocalDate endDate,
         String font,
         String ta,
-        ContractStatus status
+        ContractStatus status,
+        List<Long> fiscaisConfirmadosEnvioInteresse
 ) {}
