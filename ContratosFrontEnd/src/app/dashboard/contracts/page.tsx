@@ -2,6 +2,7 @@
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ContractFormDialog, { ContractFormPayload } from "@/components/contracts/ContractFormDialog";
+import InterestEmailDialog from "@/components/contracts/InterestEmailDialog";
 import { useAuth } from "@/components/DashboardShell";
 import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
@@ -32,6 +33,7 @@ export default function ContractsPage() {
   const [editing, setEditing] = useState<Contract | null>(null);
   const [removing, setRemoving] = useState<Contract | null>(null);
   const [feedback, setFeedback] = useState({ message: "", error: false });
+  const [emailContract, setEmailContract] = useState<Contract | null>(null);
 
   async function load() {
     try {
@@ -190,7 +192,13 @@ export default function ContractsPage() {
                       <Stack direction="row" spacing={0.25} justifyContent="flex-end">
                         <Tooltip title="Gerar e-mail de interesse">
                           <span>
-                            <IconButton disabled aria-label="Gerar e-mail de interesse"> <EmailOutlined /></IconButton>
+                            <IconButton
+                              disabled={item.status !== "AGUARDANDO_EMAIL_INTERESSE"}
+                              aria-label="Gerar e-mail de interesse"
+                              onClick={() => setEmailContract(item)}
+                            >
+                              <EmailOutlined />
+                            </IconButton>
                           </span>
                         </Tooltip>
                         <Tooltip title="Gerar parecer">
@@ -251,5 +259,11 @@ export default function ContractsPage() {
 
     <ConfirmDialog open={Boolean(removing)} title="Excluir contrato?" text={`O contrato ${removing?.numberContract ?? ""} será removido permanentemente.`} onClose={() => setRemoving(null)} onConfirm={remove} />
     <Feedback message={feedback.message} error={feedback.error} onClose={() => setFeedback({ message: "", error: false })} />
+    <InterestEmailDialog
+      open={Boolean(emailContract)}
+      contract={emailContract}
+      onClose={() => setEmailContract(null)}
+      onConfirmed={() => { setFeedback({ message: "Confirmação registrada", error: false }); void load(); }}
+    />
   </>;
 }

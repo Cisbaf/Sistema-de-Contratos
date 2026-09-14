@@ -3,6 +3,7 @@ export interface Sector { id: number; name: string; usersCount: number }
 export interface User {
   id: number;
   name: string;
+  username: string;
   email: string;
   cellPhone: string | null;
   sector: { id: number; name: string } | null;
@@ -24,7 +25,8 @@ export interface Contract {
   endDate: string;
   font: string | null;
   ta: string | null;
-  status: ContractStatus
+  status: ContractStatus;
+  fiscaisConfirmadosEnvioInteresse: number[];
 }
 
 export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMAIL_ENVIADO" | "RENOVACAO_ABERTA_SEI";
