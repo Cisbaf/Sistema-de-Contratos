@@ -98,4 +98,9 @@ public class Contract {
         return true;
     }
 
+    public boolean markTechnicalOpinionGenerated() {
+        if (this.status != ContractStatus.EMAIL_ENVIADO) return false;
+        this.status = ContractStatus.RENOVACAO_ABERTA_SEI;
+        return true;
+    }
 }

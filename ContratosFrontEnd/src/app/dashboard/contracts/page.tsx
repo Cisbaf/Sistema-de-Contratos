@@ -3,6 +3,7 @@
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ContractFormDialog, { ContractFormPayload } from "@/components/contracts/ContractFormDialog";
 import InterestEmailDialog from "@/components/contracts/InterestEmailDialog";
+import TechnicalOpinionDialog from "@/components/contracts/TechnicalOpinionDialog";
 import { useAuth } from "@/components/DashboardShell";
 import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
@@ -34,6 +35,7 @@ export default function ContractsPage() {
   const [removing, setRemoving] = useState<Contract | null>(null);
   const [feedback, setFeedback] = useState({ message: "", error: false });
   const [emailContract, setEmailContract] = useState<Contract | null>(null);
+  const [opinionContract, setOpinionContract] = useState<Contract | null>(null);
 
   async function load() {
     try {
@@ -203,7 +205,13 @@ export default function ContractsPage() {
                         </Tooltip>
                         <Tooltip title="Gerar parecer">
                           <span>
-                            <IconButton disabled aria-label="Gerar parecer"> <DescriptionOutlined /></IconButton>
+                            <IconButton
+                              disabled={item.status !== "EMAIL_ENVIADO"}
+                              aria-label="Gerar parecer"
+                              onClick={() => setOpinionContract(item)}
+                            >
+                              <DescriptionOutlined />
+                            </IconButton>
                           </span>
                         </Tooltip>
                         <Tooltip title="Financeiro">
@@ -264,6 +272,12 @@ export default function ContractsPage() {
       contract={emailContract}
       onClose={() => setEmailContract(null)}
       onConfirmed={() => { setFeedback({ message: "Confirmação registrada", error: false }); void load(); }}
+    />
+    <TechnicalOpinionDialog
+      open={Boolean(opinionContract)}
+      contract={opinionContract}
+      onClose={() => setOpinionContract(null)}
+      onSubmitted={() => { setFeedback({ message: "Parecer enviado", error: false }); void load(); }}
     />
   </>;
 }
