@@ -11,4 +11,6 @@ public interface InterestEmailConfirmationRepository extends JpaRepository<Inter
     boolean existsByContract_IdAndFiscal_Id(Long contractId, Long fiscalId);
 
     List<InterestEmailConfirmation> findByContract_Id(Long contractId);
+
+    void deleteByContract_Id(Long contractId);
 }

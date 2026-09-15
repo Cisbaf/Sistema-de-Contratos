@@ -9,4 +9,6 @@ import java.util.List;
 public interface GeneratedDocumentRepository extends JpaRepository<GeneratedDocument, Long> {
 
     List<GeneratedDocument> findByContractIdAndDocumentTypeOrderByVersionDesc(Long contractId, DocumentTemplateType documentType);
+
+    void deleteByContract_Id(Long contractId);
 }

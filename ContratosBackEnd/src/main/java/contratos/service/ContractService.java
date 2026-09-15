@@ -16,7 +16,9 @@ import contratos.domain.Contract;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
+import contratos.repository.GeneratedDocumentRepository;
 import contratos.repository.InterestEmailConfirmationRepository;
+import contratos.repository.TechnicalOpinionRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,8 @@ public class ContractService {
     private final UserRepository users;
     private final ContractStatusService contractStatusService;
     private final InterestEmailConfirmationRepository interestRepository;
+    private final TechnicalOpinionRepository technicalOpinionRepository;
+    private final GeneratedDocumentRepository generatedDocumentRepository;
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
@@ -79,9 +83,24 @@ public class ContractService {
         return EntityMapper.contract(contract, getConfirmadosId(id));
     }
 
+    /**
+     * Exclui o contrato e todos os registros que dependem dele (histórico de
+     * status, confirmações de e-mail de interesse, pareceres técnicos e
+     * documentos gerados). Sem isso, o banco recusa a exclusão por violação
+     * de chave estrangeira em qualquer contrato que já tenha avançado de
+     * status ou gerado algum documento.
+     */
     @Transactional
     public void delete(Long id) {
-        contracts.delete(getContract(id));
+        Contract contract = getContract(id);
+        Long contractId = contract.getId();
+
+        contractStatusService.deleteHistoryOf(contractId);
+        interestRepository.deleteByContract_Id(contractId);
+        technicalOpinionRepository.deleteByContract_Id(contractId);
+        generatedDocumentRepository.deleteByContract_Id(contractId);
+
+        contracts.delete(contract);
     }
 
     private List<Long> getConfirmadosId(Long contractId){

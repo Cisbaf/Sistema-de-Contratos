@@ -69,6 +69,25 @@ public class ContractStatusService {
         return true;
     }
 
+    @Transactional
+    public void deleteHistoryOf(Long contractId) {
+        repository.deleteByContract_Id(contractId);
+    }
+
+    @Transactional
+    public boolean advanceAfterTechnicalOpinionGenerated(Contract contract, AppUser user) {
+        var previousStatus = contract.getStatus();
+        var changed = contract.markTechnicalOpinionGenerated();
+        if (!changed) return false;
+
+        repository.save(new ContractStatusHistory(
+                LocalDateTime.now(ZoneId.of("America/Sao_Paulo")),
+                user, contract, previousStatus, contract.getStatus(),
+                ContractStatusTrigger.TECHNICAL_OPINION_GENERATED
+        ));
+        return true;
+    }
+
     @Scheduled(
             cron = "${contracts.status-update-cron:0 0 1 * * *}",
             zone = "America/Sao_Paulo"
