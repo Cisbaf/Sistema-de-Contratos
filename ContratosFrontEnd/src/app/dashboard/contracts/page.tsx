@@ -3,6 +3,7 @@
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ContractFormDialog, { ContractFormPayload } from "@/components/contracts/ContractFormDialog";
 import InterestEmailDialog from "@/components/contracts/InterestEmailDialog";
+import SupplierMaskDialog from "@/components/contracts/SupplierMaskDialog";
 import TechnicalOpinionDialog from "@/components/contracts/TechnicalOpinionDialog";
 import { useAuth } from "@/components/DashboardShell";
 import { Feedback, PageLoading } from "@/components/Feedback";
@@ -10,7 +11,7 @@ import PageHeader from "@/components/PageHeader";
 import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
 import { formatCnpj } from "@/lib/formatters";
 import type { Contract, ContractStatus, User } from "@/types";
-import { AccountBalanceOutlined, DescriptionOutlined, EmailOutlined } from "@mui/icons-material";
+import { DescriptionOutlined, EmailOutlined, PersonOutlineOutlined } from "@mui/icons-material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
@@ -36,6 +37,7 @@ export default function ContractsPage() {
   const [feedback, setFeedback] = useState({ message: "", error: false });
   const [emailContract, setEmailContract] = useState<Contract | null>(null);
   const [opinionContract, setOpinionContract] = useState<Contract | null>(null);
+  const [maskContract, setMaskContract] = useState<Contract | null>(null);
 
   async function load() {
     try {
@@ -214,9 +216,15 @@ export default function ContractsPage() {
                             </IconButton>
                           </span>
                         </Tooltip>
-                        <Tooltip title="Financeiro">
+                        <Tooltip title="Máscara externa ao prestador">
                           <span>
-                            <IconButton disabled aria-label="Financeiro"> <AccountBalanceOutlined /></IconButton>
+                            <IconButton
+                              disabled={item.status === "EM_VIGENCIA"}
+                              aria-label="Máscara externa ao prestador"
+                              onClick={() => setMaskContract(item)}
+                            >
+                              <PersonOutlineOutlined />
+                            </IconButton>
                           </span>
                         </Tooltip>
 
@@ -278,6 +286,11 @@ export default function ContractsPage() {
       contract={opinionContract}
       onClose={() => setOpinionContract(null)}
       onSubmitted={() => { setFeedback({ message: "Parecer enviado", error: false }); void load(); }}
+    />
+    <SupplierMaskDialog
+      open={Boolean(maskContract)}
+      contract={maskContract}
+      onClose={() => setMaskContract(null)}
     />
   </>;
 }

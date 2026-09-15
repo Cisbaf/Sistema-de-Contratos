@@ -7,6 +7,7 @@ import contratos.api.dto.InterestEmail.InterestEmailPreviewResponse;
 import contratos.api.dto.TechnicalOpinion.TextPayload;
 import contratos.service.ContractService;
 import contratos.service.InterestEmailConfirmationService;
+import contratos.service.SupplierMaskService;
 import contratos.service.TechnicalOpinionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class ContractController {
     private final ContractService service;
     private final InterestEmailConfirmationService confirmationService;
     private final TechnicalOpinionService technicalOpinionService;
+    private final SupplierMaskService supplierMaskService;
 
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
@@ -111,5 +113,12 @@ public class ContractController {
             @PathVariable Long id, @RequestBody TextPayload payload, Principal principal) {
         var message = technicalOpinionService.submit(id, principal.getName(), payload.text());
         return ResponseEntity.ok(new TextPayload(message));
+    }
+
+    @GetMapping("/{id}/supplier-mask/preview")
+    @PreAuthorize("@contractAuthorization.canRead(#id, authentication)")
+    public ResponseEntity<TextPayload> previewSupplierMask(@PathVariable Long id) {
+        var text = supplierMaskService.preview(id);
+        return ResponseEntity.ok(new TextPayload(text));
     }
 }
