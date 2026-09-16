@@ -49,3 +49,14 @@ export interface AuthStatus {
   admin?: boolean;
   perfil?: "ADMIN" | "CONTROLE_INTERNO" | "FISCAL";
 }
+
+export interface GeneratedDocument {
+  id: number;
+  contractId: number;
+  documentType: DocumentTemplateType;
+  format: "PDF" | "WORD";
+  fileName: string;
+  version: number;
+  generatedBy: { id: number; name: string; username: string };
+  generatedAt: string;
+}

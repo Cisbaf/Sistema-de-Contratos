@@ -16,6 +16,27 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   return response.json() as Promise<T>;
 }
 
+export async function downloadFile(path: string, fallbackFileName: string): Promise<void> {
+  const response = await fetch(`/api${path}`, { credentials: "include" });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { message?: string } | null;
+    throw new ApiError(response.status, payload?.message ?? `Erro ${response.status}`);
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fallbackFileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+}
+
 export const getJson = <T,>(path: string) => apiRequest<T>(path, { cache: "no-store" });
 export const postJson = <T,>(path: string, body?: unknown) => apiRequest<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 export const putJson = <T,>(path: string, body: unknown) => apiRequest<T>(path, { method: "PUT", body: JSON.stringify(body) });
