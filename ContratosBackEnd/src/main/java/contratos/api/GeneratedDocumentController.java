@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -35,8 +36,8 @@ public class GeneratedDocumentController {
     }
 
     @GetMapping("/download")
-    public ResponseEntity<byte[]> download(Long documentId) {
-        var file = service.downloadContent(documentId);
+    public ResponseEntity<byte[]> download(Long documentId, Authentication authentication) {
+        var file = service.downloadContent(documentId, authentication);
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.fileName() + "\"")

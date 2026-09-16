@@ -1,13 +1,5 @@
 package contratos.service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.List;
-
-import org.springframework.security.access.prepost.PostAuthorize;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import contratos.api.dto.GeneratedDocument.GeneratedDocumentFile;
 import contratos.api.dto.GeneratedDocument.GeneratedDocumentRequest;
 import contratos.api.dto.GeneratedDocument.GeneratedDocumentResponse;
@@ -23,6 +15,14 @@ import contratos.repository.UserRepository;
 import contratos.security.ContractAuthorization;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -59,10 +59,12 @@ public class GeneratedDocumentService {
         return repository.findByContractIdAndDocumentTypeOrderByVersionDesc(contractId, documentType).stream().map(this::mapResponse).toList();
     }
 
-    @PostAuthorize("@contractAuthorization.canRead(returnObject.contractId(), authentication)")
     @Transactional(readOnly = true)
-    public GeneratedDocumentFile downloadContent(Long documentId) {
+    public GeneratedDocumentFile downloadContent(Long documentId, Authentication authentication) {
         var document = repository.findById(documentId).orElseThrow(() -> new EntityNotFoundException("Documento não encontrado com o id: " + documentId));
+        if (!authorization.canRead(document.getContract().getId(), authentication)) {
+            throw new AccessDeniedException("Usuário não tem permissão para baixar o arquivo");
+        }
         return new GeneratedDocumentFile(document.getContract().getId(), document.getFileName(), document.getFormat(), document.getContent());
     }
 
