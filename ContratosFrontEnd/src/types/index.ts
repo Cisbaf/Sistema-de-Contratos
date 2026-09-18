@@ -27,6 +27,8 @@ export interface Contract {
   ta: string | null;
   status: ContractStatus;
   fiscaisConfirmadosEnvioInteresse: number[];
+  seiProcessNumber: string;
+  maxExtensionMonths: number | null;
 }
 
 export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMAIL_ENVIADO" | "RENOVACAO_ABERTA_SEI";

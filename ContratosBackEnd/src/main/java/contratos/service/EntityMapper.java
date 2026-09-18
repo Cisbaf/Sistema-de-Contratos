@@ -24,6 +24,7 @@ public final class EntityMapper {
                 value.getCompany(), value.getCnpj(), value.getValueGlobal(), value.getValueMensal(),
                 value.getFiscais().stream().map(EntityMapper::user)
                         .sorted(Comparator.comparing(UserSummary::name)).toList(),
-                value.getStartDate(), value.getEndDate(), value.getFont(), value.getTa(),value.getStatus(), confirmados);
+                value.getStartDate(), value.getEndDate(), value.getFont(), value.getTa(), value.getStatus(), confirmados,
+                value.getSeiProcessNumber(), value.getMaxExtensionMonths());
     }
 }

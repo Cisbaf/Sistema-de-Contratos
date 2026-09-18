@@ -151,9 +151,11 @@ export default function ContractsPage() {
             <TableHead>
               <TableRow>
                 <TableCell>Contrato</TableCell>
+                <TableCell>Número SEI</TableCell>
                 <TableCell>Objeto / processo</TableCell>
                 <TableCell>Empresa</TableCell>
                 <TableCell>Valores</TableCell>
+                <TableCell>Limite de Prorrogação</TableCell>
                 <TableCell>Fiscais</TableCell>
                 <TableCell>Vigência</TableCell>
                 <TableCell>Fonte / TA</TableCell>
@@ -172,6 +174,9 @@ export default function ContractsPage() {
                       <Typography fontWeight={700}>{item.numberContract}</Typography>
                       <Typography variant="caption" color="text.secondary">{formatCnpj(item.cnpj)}</Typography>
                     </TableCell>
+                    <TableCell>
+                      <Typography >{item.seiProcessNumber}</Typography>
+                    </TableCell>
                     <TableCell sx={{ maxWidth: 260 }}>
                       <Tooltip title={item.object}>
                         <Typography noWrap>{item.object}</Typography>
@@ -182,6 +187,13 @@ export default function ContractsPage() {
                     <TableCell>
                       <Typography variant="body2">Global: {money.format(item.valueGlobal)}</Typography>
                       <Typography variant="caption" color="text.secondary">Mensal: {money.format(item.valueMensal)}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography>
+                        {item.maxExtensionMonths === null
+                          ? " - "
+                          : `${item.maxExtensionMonths} ${item.maxExtensionMonths === 1 ? "mês" : "meses"}`}
+                      </Typography>
                     </TableCell>
                     <TableCell><Stack direction="row" gap={.5} flexWrap="wrap">
                       {item.fiscais.length ? item.fiscais.map(fiscal => <Chip key={fiscal.id} label={fiscal.name} size="small" />) : <Typography variant="caption" color="text.secondary">Não definido</Typography>}
@@ -283,6 +295,7 @@ export default function ContractsPage() {
       users={users}
       onClose={() => setOpen(false)}
       onSubmit={saveContract}
+      onError={message => setFeedback({ message, error: true })}
     />
 
     <ConfirmDialog open={Boolean(removing)} title="Excluir contrato?" text={`O contrato ${removing?.numberContract ?? ""} será removido permanentemente.`} onClose={() => setRemoving(null)} onConfirm={remove} />

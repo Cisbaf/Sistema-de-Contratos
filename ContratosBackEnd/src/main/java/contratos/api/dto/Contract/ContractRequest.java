@@ -17,7 +17,10 @@ public record ContractRequest(
         @NotNull @DecimalMin("0.00") BigDecimal valueMensal,
         @NotNull LocalDate startDate,
         @NotNull LocalDate endDate,
-        @Size(max = 200)  String font, //fonte de recurso
-        @Size(max = 10)  String ta, //termo aditivo
-        @NotEmpty(message = "Fiscais são obrigatórios") Set<Long> fiscalIds
-) {}
+        @Size(max = 200) String font, //fonte de recurso
+        @Size(max = 10) String ta, //termo aditivo
+        @NotEmpty(message = "Fiscais são obrigatórios") Set<Long> fiscalIds,
+        @NotBlank @Size(max = 15) String seiProcessNumber,
+        Integer maxExtensionMonths
+) {
+}

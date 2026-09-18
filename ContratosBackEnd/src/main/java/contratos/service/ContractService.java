@@ -148,7 +148,9 @@ public class ContractService {
                 request.startDate(),
                 request.endDate(),
                 blankToNull(request.font()),
-                blankToNull(request.ta()), new LinkedHashSet<>(selected));
+                blankToNull(request.ta()), new LinkedHashSet<>(selected),
+                request.seiProcessNumber().trim(),
+                request.maxExtensionMonths());
     }
 
     private void validateDates(ContractRequest request) {

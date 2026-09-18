@@ -22,5 +22,7 @@ public record ContractResponse(
         String font,
         String ta,
         ContractStatus status,
-        List<Long> fiscaisConfirmadosEnvioInteresse
+        List<Long> fiscaisConfirmadosEnvioInteresse,
+        String seiProcessNumber,
+        Integer maxExtensionMonths
 ) {}

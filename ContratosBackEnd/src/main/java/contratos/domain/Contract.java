@@ -41,6 +41,9 @@ public class Contract {
     private String font;
     @Column(length = 10)
     private String ta;
+    @Column(nullable = false)
+    private String seiProcessNumber;
+    private Integer maxExtensionMonths;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 40)
     private ContractStatus status = ContractStatus.EM_VIGENCIA;
@@ -53,7 +56,8 @@ public class Contract {
 
     public void update(String numberContract, String numberProcess, String object, String company,
                        String cnpj, BigDecimal valueGlobal, BigDecimal valueMensal,
-                       LocalDate startDate, LocalDate endDate, String font, String ta, Set<AppUser> fiscais) {
+                       LocalDate startDate, LocalDate endDate, String font, String ta, Set<AppUser> fiscais,
+                       String seiProcessNumber, Integer maxExtensionMonths) {
         this.numberContract = numberContract;
         this.numberProcess = numberProcess;
         this.object = object;
@@ -67,6 +71,8 @@ public class Contract {
         this.ta = ta;
         this.fiscais.clear();
         this.fiscais.addAll(fiscais);
+        this.seiProcessNumber = seiProcessNumber;
+        this.maxExtensionMonths = maxExtensionMonths;
     }
 
     public boolean updateStatusByDeadline(LocalDate referenceDate) {
