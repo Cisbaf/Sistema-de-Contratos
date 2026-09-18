@@ -614,6 +614,8 @@ PENDENCIAS_VALIDACAO_CHEFIA.md
 .vscode
 /CONTEXTO_IA.md
 MODULO_3_RENOVACAO_PLANO_GUIADO.md
+MODULO_4_FINANCEIRO_PLANO_GUIADO.md
+MODULO_2B_CONTRATO_CAMPOS_E_ANEXOS_PLANO_GUIADO.md
 next-env.d.ts
 Claude outputs/limpar_contratos_demo.sql
 Claude outputs/popular_contratos_demo.sql
