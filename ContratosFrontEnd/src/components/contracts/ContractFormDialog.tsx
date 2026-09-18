@@ -1,6 +1,6 @@
 "use client"
 
-import { formatCnpj } from "@/lib/formatters";
+import { formatCnpj, isValidCnpj } from "@/lib/formatters";
 import { Contract, User } from "@/types";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, OutlinedInput, Select, TextField, Typography } from "@mui/material";
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -18,6 +18,8 @@ type ContractForm<TValue extends string | number> = {
     font: string;
     ta: string;
     fiscalIds: number[];
+    seiProcessNumber: string;
+    maxExtensionMonths: TValue | null;
 };
 
 export type ContractFormState = ContractForm<string>;
@@ -30,6 +32,7 @@ type ContractFormDialogProps = {
     users: User[];
     onClose: () => void;
     onSubmit: (payload: ContractFormPayload) => Promise<void>;
+    onError: (message: string) => void;
 };
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -47,9 +50,11 @@ const emptyForm = (): ContractFormState => ({
     font: "",
     ta: "",
     fiscalIds: [],
+    seiProcessNumber: "",
+    maxExtensionMonths: null,
 });
 
-export default function ContractFormDialog({ open, contract, users, onClose, onSubmit }: ContractFormDialogProps) {
+export default function ContractFormDialog({ open, contract, users, onClose, onSubmit, onError }: ContractFormDialogProps) {
     const [form, setForm] = useState<ContractFormState>(emptyForm());
     const [fiscalError, setFiscalError] = useState("");
     const [saving, setSaving] = useState(false);
@@ -80,6 +85,8 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
             font: contract.font ?? "",
             ta: contract.ta ?? "",
             fiscalIds: contract.fiscais.map(fiscais => fiscais.id),
+            seiProcessNumber: contract.seiProcessNumber,
+            maxExtensionMonths: contract.maxExtensionMonths !== null ? String(contract.maxExtensionMonths) : null
         });
     }, [open, contract])
 
@@ -102,6 +109,11 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
+        if (!isValidCnpj(form.cnpj)) {
+            onError("CNPJ inválido");
+            return;
+        }
+
         if (form.fiscalIds.length === 0) {
             setFiscalError("Selecione pelo menos um fiscal responsável");
             return;
@@ -115,6 +127,7 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
                 ...form,
                 valueGlobal: Number(form.valueGlobal),
                 valueMensal: Number(form.valueMensal),
+                maxExtensionMonths: form.maxExtensionMonths === "" || form.maxExtensionMonths === null ? null : Number(form.maxExtensionMonths)
             });
         } finally {
             setSaving(false);
@@ -135,21 +148,46 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
                 </DialogTitle>
 
                 <DialogContent>
-                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2, pt: 1 }}>
-                        <TextField label="Número do contrato" value={form.numberContract} onChange={e => field("numberContract", e.target.value)} required />
-                        <TextField label="Número do processo" value={form.numberProcess} onChange={e => field("numberProcess", e.target.value)} required />
-                        <TextField label="Objeto do contrato" value={form.object} onChange={e => field("object", e.target.value)} required multiline minRows={3} sx={{ gridColumn: { sm: "1 / -1" } }} />
-                        <TextField label="Empresa" value={form.company} onChange={e => field("company", e.target.value)} required />
+                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(4, 1fr)" }, gap: 2, pt: 1 }}>
+                        <TextField label="Número do contrato" value={form.numberContract} onChange={e => field("numberContract", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
+                        <TextField label="Número do processo" value={form.numberProcess} onChange={e => field("numberProcess", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
+                        <TextField label="Objeto do contrato" value={form.object}
+                            onChange={e => field("object", e.target.value)} required multiline minRows={3} sx={{ gridColumn: "1 / -1" }}
+                        />
+                        <TextField label="Empresa" value={form.company} onChange={e => field("company", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
                         <TextField label="CNPJ" value={form.cnpj}
                             onChange={e => field("cnpj", formatCnpj(e.target.value))} required
                             slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 18 } }}
+                            sx={{ gridColumn: { sm: "span 2" } }}
                         />
-                        <TextField label="Valor global" value={form.valueGlobal} onChange={e => field("valueGlobal", e.target.value)} type="number" required slotProps={{ htmlInput: { min: 0, step: ".01" } }} />
-                        <TextField label="Valor mensal" value={form.valueMensal} onChange={e => field("valueMensal", e.target.value)} type="number" required slotProps={{ htmlInput: { min: 0, step: ".01" } }} />
-                        <TextField label="Início da vigência" value={form.startDate} onChange={e => field("startDate", e.target.value)} type="date" required slotProps={{ inputLabel: { shrink: true } }} />
-                        <TextField label="Fim da vigência" value={form.endDate} onChange={e => field("endDate", e.target.value)} type="date" required slotProps={{ inputLabel: { shrink: true } }} />
-                        <TextField label="Fonte de recurso" value={form.font} onChange={e => field("font", e.target.value)} />
-                        <TextField select label="Termo aditivo" value={form.ta} onChange={e => field("ta", e.target.value)}><MenuItem value="">Sem TA</MenuItem>{[1, 2, 3, 4, 5, 6].map(value => <MenuItem key={value} value={String(value)}>TA {value}</MenuItem>)}</TextField>
+                        <TextField label="Nº Processo SEI" value={form.seiProcessNumber} onChange={e => field("seiProcessNumber", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
+                        <TextField label="Início da vigência" value={form.startDate} onChange={e => field("startDate", e.target.value)}
+                            type="date" required slotProps={{ inputLabel: { shrink: true } }} sx={{ gridColumn: { sm: "span 2" } }}
+                        />
+                        <TextField label="Fim da vigência" value={form.endDate} onChange={e => field("endDate", e.target.value)}
+                            type="date" required slotProps={{ inputLabel: { shrink: true } }} sx={{ gridColumn: { sm: "span 2" } }}
+                        />
+
+                        {/* linha densa: campos curtos, sem span explícito = 1 coluna de 4 cada */}
+
+                        <TextField label="Valor global" value={form.valueGlobal} onChange={e => field("valueGlobal", e.target.value)}
+                            type="number" required slotProps={{ htmlInput: { min: 0, step: ".01" } }}
+                        />
+                        <TextField label="Valor mensal" value={form.valueMensal} onChange={e => field("valueMensal", e.target.value)}
+                            type="number" required slotProps={{ htmlInput: { min: 0, step: ".01" } }}
+                        />
+                        <TextField label="Limite de prorrogação (meses)" value={form.maxExtensionMonths} onChange={e => field("maxExtensionMonths", e.target.value)}
+                            type="number" slotProps={{ htmlInput: { min: 0, step: "1" } }}
+                        />
+                        <TextField select label="Termo aditivo" value={form.ta} onChange={e => field("ta", e.target.value)}>
+                            <MenuItem value="">Sem TA</MenuItem>
+                            {[1, 2, 3, 4, 5, 6].map(value => <MenuItem key={value} value={String(value)}>TA {value}</MenuItem>)}
+                        </TextField>
+
+                        <TextField label="Fonte de recurso" value={form.font} onChange={e => field("font", e.target.value)} sx={{ gridColumn: { sm: "span 2" } }} />
+
+
+
                         <FormControl required error={Boolean(fiscalError)} sx={{ gridColumn: { sm: "1 / -1" } }}>
                             <InputLabel id="fiscais-label">Fiscais responsáveis
                             </InputLabel>
@@ -206,6 +244,6 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
                 </DialogActions>
             </form>
 
-        </Dialog>
+        </Dialog >
     )
 }

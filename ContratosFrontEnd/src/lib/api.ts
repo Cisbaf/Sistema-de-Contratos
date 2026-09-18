@@ -2,6 +2,16 @@ export class ApiError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+type ApiErrorPayload = {
+  message?: string;
+  fields?: Record<string, string>;
+};
+
+function errorMessage(payload: ApiErrorPayload | null, fallback: string) {
+  const fieldError = payload?.fields && Object.values(payload.fields).find(Boolean);
+  return fieldError ?? payload?.message ?? fallback;
+}
+
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...init,
@@ -9,8 +19,8 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
     headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
   });
   if (!response.ok) {
-    const payload = await response.json().catch(() => null) as { message?: string } | null;
-    throw new ApiError(response.status, payload?.message ?? `Erro ${response.status}`);
+    const payload = await response.json().catch(() => null) as ApiErrorPayload | null;
+    throw new ApiError(response.status, errorMessage(payload, `Erro ${response.status}`));
   }
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
@@ -20,8 +30,8 @@ export async function downloadFile(path: string, fallbackFileName: string): Prom
   const response = await fetch(`/api${path}`, { credentials: "include" });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => null) as { message?: string } | null;
-    throw new ApiError(response.status, payload?.message ?? `Erro ${response.status}`);
+    const payload = await response.json().catch(() => null) as ApiErrorPayload | null;
+    throw new ApiError(response.status, errorMessage(payload, `Erro ${response.status}`));
   }
 
   const blob = await response.blob();
