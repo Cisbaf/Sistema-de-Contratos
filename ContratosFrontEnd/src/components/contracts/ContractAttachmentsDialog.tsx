@@ -15,6 +15,7 @@ import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 // Espelham as regras do backend (ContractAttachmentService + application.properties).
 // O backend continua sendo a garantia; aqui é só para avisar antes de enviar.
 const MAX_FILES = 5;
+const MAX_PER_CONTRACT = 10;
 const MAX_FILE_BYTES = 30 * 1024 * 1024;
 const MAX_TOTAL_BYTES = 90 * 1024 * 1024;
 const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
@@ -28,8 +29,12 @@ function tamanho(bytes: number) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function validarArquivos(files: File[]): string | null {
+function validarArquivos(files: File[], jaAnexados: number): string | null {
     if (files.length > MAX_FILES) return `Selecione no máximo ${MAX_FILES} arquivos por vez.`;
+    if (jaAnexados + files.length > MAX_PER_CONTRACT) {
+        const vagas = Math.max(0, MAX_PER_CONTRACT - jaAnexados);
+        return `Limite de ${MAX_PER_CONTRACT} anexos por contrato. Este contrato já tem ${jaAnexados} e comporta mais ${vagas}.`;
+    }
     for (const file of files) {
         const name = file.name.toLowerCase();
         if (!ALLOWED_EXTENSIONS.some(ext => name.endsWith(ext))) {
@@ -83,7 +88,7 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
 
         setError("");
         setSuccess("");
-        const problem = validarArquivos(files);
+        const problem = validarArquivos(files, items.length);
         if (problem) {
             setError(problem);
             return;
@@ -148,13 +153,15 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
                                 <Button
                                     variant="outlined"
                                     startIcon={uploading ? <CircularProgress size={16} /> : <UploadFileIcon />}
-                                    disabled={uploading}
+                                    disabled={uploading || items.length >= MAX_PER_CONTRACT}
                                     onClick={() => inputRef.current?.click()}
                                 >
                                     Adicionar arquivos
                                 </Button>
                                 <Typography variant="caption" color="text.secondary">
-                                    Até {MAX_FILES} arquivos por vez (PDF, DOC ou DOCX, até 30 MB cada).
+                                    {items.length >= MAX_PER_CONTRACT
+                                        ? `Limite de ${MAX_PER_CONTRACT} anexos atingido. Remova um para adicionar outro.`
+                                        : `Até ${MAX_FILES} arquivos por vez, ${items.length} de ${MAX_PER_CONTRACT} anexos em uso (PDF, DOC ou DOCX, até 30 MB cada).`}
                                 </Typography>
                             </Stack>
                         </Box>

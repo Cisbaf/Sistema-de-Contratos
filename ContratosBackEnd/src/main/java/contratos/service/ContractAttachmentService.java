@@ -22,6 +22,9 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ContractAttachmentService {
+    private static final int MAX_FILES_PER_UPLOAD = 5;
+    private static final int MAX_ACTIVE_ATTACHMENTS_PER_CONTRACT = 10;
+
     private final ContractAttachmentRepository attachmentRepository;
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
@@ -46,10 +49,18 @@ public class ContractAttachmentService {
 
     @Transactional
     public List<ContractAttachmentResponse> uploadFiles(Long contractId, List<MultipartFile> files, String username) throws IOException {
-        if (files.isEmpty() || files.size() > 5) {
-            throw new IllegalArgumentException("É necessário no mínimo 1 e no máximo 5 arquivos");
+        if (files.isEmpty() || files.size() > MAX_FILES_PER_UPLOAD) {
+            throw new IllegalArgumentException("É necessário no mínimo 1 e no máximo " + MAX_FILES_PER_UPLOAD + " arquivos");
         }
         var contract = contractRepository.findById(contractId).orElseThrow(() -> new EntityNotFoundException("Não existe contrato atrelado ao id: " + contractId));
+
+        // Só anexos ativos contam: um anexo removido já teve o conteúdo apagado e libera a vaga.
+        long ativos = attachmentRepository.countByContract_IdAndAtivoTrue(contractId);
+        if (ativos + files.size() > MAX_ACTIVE_ATTACHMENTS_PER_CONTRACT) {
+            long vagas = Math.max(0, MAX_ACTIVE_ATTACHMENTS_PER_CONTRACT - ativos);
+            throw new IllegalArgumentException("Limite de " + MAX_ACTIVE_ATTACHMENTS_PER_CONTRACT
+                    + " anexos por contrato. Este contrato já tem " + ativos + " e comporta mais " + vagas + ".");
+        }
         var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Não existe usuário com o nome: " + username));
 
         List<ContractAttachment> attachments = new ArrayList<>();
