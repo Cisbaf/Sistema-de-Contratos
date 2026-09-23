@@ -9,4 +9,6 @@ public interface ContractAttachmentRepository extends JpaRepository<ContractAtta
     List<ContractAttachment> findByContract_IdAndAtivoTrueOrderByUploadedAtDesc(Long contractId);
 
     List<ContractAttachment> findByContract_IdOrderByUploadedAtAsc(Long contractId);
+
+    void deleteByContract_Id(Long contractId);
 }

@@ -15,6 +15,7 @@ import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
+import contratos.repository.ContractAttachmentRepository;
 import contratos.repository.ContractRepository;
 import contratos.repository.GeneratedDocumentRepository;
 import contratos.repository.InterestEmailConfirmationRepository;
@@ -32,6 +33,7 @@ public class ContractService {
     private final InterestEmailConfirmationRepository interestRepository;
     private final TechnicalOpinionRepository technicalOpinionRepository;
     private final GeneratedDocumentRepository generatedDocumentRepository;
+    private final ContractAttachmentRepository attachmentRepository;
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
@@ -99,6 +101,7 @@ public class ContractService {
         interestRepository.deleteByContract_Id(contractId);
         technicalOpinionRepository.deleteByContract_Id(contractId);
         generatedDocumentRepository.deleteByContract_Id(contractId);
+        attachmentRepository.deleteByContract_Id(contractId);
 
         contracts.delete(contract);
     }
