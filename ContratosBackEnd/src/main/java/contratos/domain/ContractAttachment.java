@@ -47,7 +47,13 @@ public class ContractAttachment {
         this.uploadedBy = uploadedBy;
     }
 
+    /**
+     * Remoção lógica: mantém o registro (nome, tamanho original, quem enviou/removeu e quando)
+     * para o histórico, mas descarta o conteúdo do arquivo para liberar espaço no banco.
+     * A coluna é NOT NULL, então o conteúdo vira um array vazio em vez de null.
+     */
     public void removeAttachment(AppUser removedBy) {
+        this.content = new byte[0];
         this.removedAt = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         this.removedBy = removedBy;
         this.ativo = false;

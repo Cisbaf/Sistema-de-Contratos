@@ -100,6 +100,10 @@ public class ContractAttachmentService {
             throw new AccessDeniedException("O usuário não tem autorização para realizar essa operação");
         }
 
+        if (!attachment.isAtivo()) {
+            throw new EntityNotFoundException("Este anexo foi removido e o conteúdo não está mais disponível");
+        }
+
         return new ContractAttachmentFile(
                 attachment.getContract().getId(),
                 attachment.getFileName(),
