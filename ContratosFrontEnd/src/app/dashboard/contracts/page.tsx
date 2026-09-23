@@ -1,6 +1,8 @@
 "use client";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import ContractAttachmentsDialog from "@/components/contracts/ContractAttachmentsDialog";
+import ContractDetailsDrawer from "@/components/contracts/ContractDetailsDrawer";
 import ContractFormDialog, { ContractFormPayload } from "@/components/contracts/ContractFormDialog";
 import GeneratedDocumentsDialog from "@/components/contracts/GeneratedDocumentsDialog";
 import InterestEmailDialog from "@/components/contracts/InterestEmailDialog";
@@ -12,7 +14,7 @@ import PageHeader from "@/components/PageHeader";
 import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
 import { formatCnpj } from "@/lib/formatters";
 import type { Contract, ContractStatus, User } from "@/types";
-import { DescriptionOutlined, EmailOutlined, FolderOutlined, PersonOutlineOutlined } from "@mui/icons-material";
+import { VisibilityOutlined } from "@mui/icons-material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
@@ -23,6 +25,15 @@ const today = () => new Date().toISOString().slice(0, 10);
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const date = (value: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 
+
+// Coluna de ações fixa na borda direita: a tabela é larga e rola na horizontal,
+// e sem isso os botões ficam fora da área visível.
+const stickyActions = {
+  position: "sticky",
+  right: 0,
+  zIndex: 2,
+  boxShadow: "-8px 0 8px -8px rgba(15, 23, 42, 0.18)",
+} as const;
 
 export default function ContractsPage() {
   const auth = useAuth();
@@ -40,6 +51,11 @@ export default function ContractsPage() {
   const [opinionContract, setOpinionContract] = useState<Contract | null>(null);
   const [maskContract, setMaskContract] = useState<Contract | null>(null);
   const [documentsContract, setDocumentsContract] = useState<Contract | null>(null);
+  const [attachmentsContract, setAttachmentsContract] = useState<Contract | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsId, setDetailsId] = useState<number | null>(null);
+  // Deriva do array para o painel refletir o status atualizado depois de cada ação (load()).
+  const detailsContract = contracts.find(item => item.id === detailsId) ?? null;
 
   async function load() {
     try {
@@ -160,7 +176,7 @@ export default function ContractsPage() {
                 <TableCell>Vigência</TableCell>
                 <TableCell>Fonte / TA</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell align="right">Ações</TableCell>
+                <TableCell align="right" sx={stickyActions}>Ações</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -206,48 +222,15 @@ export default function ContractsPage() {
                     <TableCell>{item.font || "—"}{item.ta && <Chip label={`TA ${item.ta}`} size="small" sx={{ ml: 1 }} />}</TableCell>
                     <TableCell> <Chip label={status.label} color={status.color} size="small" /> </TableCell>
 
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ ...stickyActions, bgcolor: "background.paper" }}>
                       <Stack direction="row" spacing={0.25} justifyContent="flex-end">
-                        <Tooltip title="Gerar e-mail de interesse">
+                        <Tooltip title="Ver detalhes e ações">
                           <span>
                             <IconButton
-                              disabled={item.status !== "AGUARDANDO_EMAIL_INTERESSE"}
-                              aria-label="Gerar e-mail de interesse"
-                              onClick={() => setEmailContract(item)}
+                              aria-label="Ver detalhes e ações"
+                              onClick={() => { setDetailsId(item.id); setDetailsOpen(true); }}
                             >
-                              <EmailOutlined />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                        <Tooltip title="Gerar parecer">
-                          <span>
-                            <IconButton
-                              disabled={item.status !== "EMAIL_ENVIADO"}
-                              aria-label="Gerar parecer"
-                              onClick={() => setOpinionContract(item)}
-                            >
-                              <DescriptionOutlined />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                        <Tooltip title="Máscara externa ao prestador">
-                          <span>
-                            <IconButton
-                              disabled={item.status === "EM_VIGENCIA"}
-                              aria-label="Máscara externa ao prestador"
-                              onClick={() => setMaskContract(item)}
-                            >
-                              <PersonOutlineOutlined />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                        <Tooltip title="Documentos gerados">
-                          <span>
-                            <IconButton
-                              aria-label="Documentos gerados"
-                              onClick={() => setDocumentsContract(item)}
-                            >
-                              <FolderOutlined />
+                              <VisibilityOutlined />
                             </IconButton>
                           </span>
                         </Tooltip>
@@ -321,6 +304,23 @@ export default function ContractsPage() {
       open={Boolean(documentsContract)}
       contract={documentsContract}
       onClose={() => setDocumentsContract(null)}
+    />
+    <ContractDetailsDrawer
+      open={detailsOpen}
+      contract={detailsContract}
+      status={detailsContract ? contractStatusPresentation[detailsContract.status] : null}
+      onClose={() => setDetailsOpen(false)}
+      onEmail={setEmailContract}
+      onOpinion={setOpinionContract}
+      onMask={setMaskContract}
+      onDocuments={setDocumentsContract}
+      onAttachments={setAttachmentsContract}
+    />
+    <ContractAttachmentsDialog
+      open={Boolean(attachmentsContract)}
+      contract={attachmentsContract}
+      canManage={canManageContracts}
+      onClose={() => setAttachmentsContract(null)}
     />
   </>;
 }
