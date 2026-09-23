@@ -37,7 +37,16 @@ public class ContractAuthorization {
         boolean hasFiscalRole = authentication.getAuthorities().stream()
                 .anyMatch(authority -> "ROLE_FISCAL".equals(authority.getAuthority()));
 
+        return hasFiscalRole && contracts.existsForFiscal(contractId, authentication.getName());
+    }
 
-        return hasFiscalRole && contracts.existsForFiscal(contractId, authentication.getName());    }
+    @Transactional(readOnly = true)
+    public boolean isAdminControle(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) return false;
+
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> Objects.equals(authority.getAuthority(), "ROLE_ADMIN")
+                        || Objects.equals(authority.getAuthority(), "ROLE_CONTROLE_INTERNO"));
+    }
 
 }
