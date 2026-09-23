@@ -33,7 +33,7 @@ public class ContractAttachmentController {
         return ResponseEntity.ok(attachmentService.listarTimeline(contractId));
     }
 
-    @PostMapping("/{contractId}")
+    @PostMapping(value = "/{contractId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@contractAuthorization.isAdminControle(authentication)")
     public ResponseEntity<List<ContractAttachmentResponse>> uploadFiles(@PathVariable Long contractId, @RequestParam("files") List<MultipartFile> files, Authentication authentication) throws IOException {
         return ResponseEntity.status(HttpStatus.CREATED).body(attachmentService.uploadFiles(contractId, files, authentication.getName()));
