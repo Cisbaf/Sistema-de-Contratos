@@ -62,3 +62,15 @@ export interface GeneratedDocument {
   generatedBy: { id: number; name: string; username: string };
   generatedAt: string;
 }
+
+export interface ContractAttachment {
+  id: number;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  uploadedBy: User;
+  ativo: boolean;
+  removedAt: string | null;
+  removedBy: User | null;
+}

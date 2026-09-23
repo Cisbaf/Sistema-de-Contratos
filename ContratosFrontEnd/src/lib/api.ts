@@ -16,7 +16,8 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   const response = await fetch(`/api${path}`, {
     ...init,
     credentials: "include",
-    headers: { ...(init?.body ? { "Content-Type": "application/json" } : {}), ...init?.headers },
+    // FormData: não definir Content-Type, o navegador precisa gerar o boundary do multipart.
+    headers: { ...(init?.body && !(init.body instanceof FormData) ? { "Content-Type": "application/json" } : {}), ...init?.headers },
   });
   if (!response.ok) {
     const payload = await response.json().catch(() => null) as ApiErrorPayload | null;
@@ -49,5 +50,6 @@ export async function downloadFile(path: string, fallbackFileName: string): Prom
 
 export const getJson = <T,>(path: string) => apiRequest<T>(path, { cache: "no-store" });
 export const postJson = <T,>(path: string, body?: unknown) => apiRequest<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
+export const postForm = <T,>(path: string, body: FormData) => apiRequest<T>(path, { method: "POST", body });
 export const putJson = <T,>(path: string, body: unknown) => apiRequest<T>(path, { method: "PUT", body: JSON.stringify(body) });
 export const deleteJson = (path: string) => apiRequest<void>(path, { method: "DELETE" });
