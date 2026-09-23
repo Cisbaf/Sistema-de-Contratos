@@ -1,8 +1,8 @@
 package contratos.api;
 
-import contratos.api.dto.ApiErrorResponse;
-import contratos.exception.ConflictException;
-import jakarta.persistence.EntityNotFoundException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,9 +12,11 @@ import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import contratos.api.dto.ApiErrorResponse;
+import contratos.exception.ConflictException;
+import jakarta.persistence.EntityNotFoundException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -59,6 +61,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     ResponseEntity<ApiErrorResponse> forbiddenAccessOperation() {
         return response(HttpStatus.FORBIDDEN, "Você não tem permissão para esta operação");
+    }
+
+        @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiErrorResponse> maxUplodSize() {
+        return response(HttpStatus.BAD_REQUEST, "Arquivos enviados passam do tamanho máximo permitido");
     }
 
     private ResponseEntity<ApiErrorResponse> response(HttpStatus status, String message) {
