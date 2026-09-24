@@ -56,6 +56,7 @@ export default function GeneratedDocumentsDialog({ open, contract, onClose, }:
     }) {
     const [emails, setEmails] = useState<GeneratedDocument[]>([]);
     const [pareceres, setPareceres] = useState<GeneratedDocument[]>([]);
+    const [atestes, setAtestes] = useState<GeneratedDocument[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -67,10 +68,12 @@ export default function GeneratedDocumentsDialog({ open, contract, onClose, }:
         Promise.all([
             getJson<GeneratedDocument[]>(`/generate-document/history?contractId=${contract.id}&docType=INTEREST_EMAIL`),
             getJson<GeneratedDocument[]>(`/generate-document/history?contractId=${contract.id}&docType=TECHNICAL_OPINION`),
+            getJson<GeneratedDocument[]>(`/generate-document/history?contractId=${contract.id}&docType=PAYMENT_CHECKLIST`),
         ])
-            .then(([emailData, parecerData]) => {
+            .then(([emailData, parecerData, atesteData]) => {
                 setEmails(emailData);
                 setPareceres(parecerData);
+                setAtestes(atesteData);
             })
             .catch(err => setError(err instanceof Error ? err.message : "Erro ao carregar documentos"))
             .finally(() => setLoading(false));
@@ -89,6 +92,8 @@ export default function GeneratedDocumentsDialog({ open, contract, onClose, }:
                         <Categoria titulo="E-mail de interesse" documentos={emails} />
                         <Divider sx={{ mb: 2 }} />
                         <Categoria titulo="Parecer técnico" documentos={pareceres} />
+                        <Divider sx={{ mb: 2 }} />
+                        <Categoria titulo="Ateste dos fiscais (checklist)" documentos={atestes} />
                     </Stack>
                 )}
                 {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}

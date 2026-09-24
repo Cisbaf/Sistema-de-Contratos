@@ -16,7 +16,7 @@ const MarkdownEditor = dynamic(() => import("@/components/MarkdownEditor"), {
   loading: () => <Box py={8} display="grid" sx={{ placeItems: "center" }}><CircularProgress size={28} /></Box>,
 });
 
-const TEMPLATE_TYPES: DocumentTemplateType[] = ["INTEREST_EMAIL", "TECHNICAL_OPINION", "SUPPLIER_RENEWAL_EMAIL"];
+const TEMPLATE_TYPES: DocumentTemplateType[] = ["INTEREST_EMAIL", "TECHNICAL_OPINION", "SUPPLIER_RENEWAL_EMAIL", "PAYMENT_CHECKLIST"];
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<DocumentTemplate[]>([]);

@@ -9,6 +9,10 @@ const SAMPLE_VALUES: Record<string, string> = {
   data_termino: "15/03/2027",
   nomes_fiscais: "Maria Souza e João Pereira",
   nome_fiscal: "Maria Souza",
+  data_inicio: "15/03/2026",
+  mes_referencia: "SETEMBRO 2026",
+  numero_nota_fiscal: "174",
+  assinaturas_fiscais: "**Maria Souza**  \n*Departamento de Engenharia*\n\n**João Pereira**  \n*Setor de Compras*",
   observacoes: "Contrato cumprido dentro do prazo, sem pendências registradas.",
 };
 
@@ -16,6 +20,7 @@ export const TEMPLATE_TYPE_LABELS: Record<DocumentTemplateType, string> = {
   INTEREST_EMAIL: "E-mail de interesse",
   TECHNICAL_OPINION: "Parecer técnico",
   SUPPLIER_RENEWAL_EMAIL: "Máscara para o fornecedor",
+  PAYMENT_CHECKLIST: "Ateste dos fiscais (checklist)",
 };
 
 // Espelha o catálogo de `allowedVariables` do DocumentTemplateService no backend.
@@ -48,6 +53,14 @@ export const TEMPLATE_TYPE_VARIABLES: Record<DocumentTemplateType, string[]> = {
     "data_termino",
     "numero_processo",
     "nome_fiscal",
+  ],
+  PAYMENT_CHECKLIST: [
+    "numero_contrato",
+    "data_inicio",
+    "data_termino",
+    "mes_referencia",
+    "numero_nota_fiscal",
+    "assinaturas_fiscais",
   ],
 };
 

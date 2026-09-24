@@ -33,7 +33,7 @@ export interface Contract {
 
 export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMAIL_ENVIADO" | "RENOVACAO_ABERTA_SEI";
 
-export type DocumentTemplateType = "INTEREST_EMAIL" | "TECHNICAL_OPINION" | "SUPPLIER_RENEWAL_EMAIL";
+export type DocumentTemplateType = "INTEREST_EMAIL" | "TECHNICAL_OPINION" | "SUPPLIER_RENEWAL_EMAIL" | "PAYMENT_CHECKLIST";
 
 export interface DocumentTemplate {
   id: number;
