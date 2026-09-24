@@ -3,6 +3,7 @@
 import ConfirmDialog from "@/components/ConfirmDialog";
 import ContractAttachmentsDialog from "@/components/contracts/ContractAttachmentsDialog";
 import ContractDetailsDrawer from "@/components/contracts/ContractDetailsDrawer";
+import ContractFinancialDrawer from "@/components/contracts/ContractFinancialDrawer";
 import ContractFormDialog, { ContractFormPayload } from "@/components/contracts/ContractFormDialog";
 import GeneratedDocumentsDialog from "@/components/contracts/GeneratedDocumentsDialog";
 import InterestEmailDialog from "@/components/contracts/InterestEmailDialog";
@@ -52,6 +53,7 @@ export default function ContractsPage() {
   const [maskContract, setMaskContract] = useState<Contract | null>(null);
   const [documentsContract, setDocumentsContract] = useState<Contract | null>(null);
   const [attachmentsContract, setAttachmentsContract] = useState<Contract | null>(null);
+  const [financialContract, setFinancialContract] = useState<Contract | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsId, setDetailsId] = useState<number | null>(null);
   // Deriva do array para o painel refletir o status atualizado depois de cada ação (load()).
@@ -315,6 +317,12 @@ export default function ContractsPage() {
       onMask={setMaskContract}
       onDocuments={setDocumentsContract}
       onAttachments={setAttachmentsContract}
+      onFinancial={setFinancialContract}
+    />
+    <ContractFinancialDrawer
+      open={Boolean(financialContract)}
+      contract={financialContract}
+      onClose={() => setFinancialContract(null)}
     />
     <ContractAttachmentsDialog
       open={Boolean(attachmentsContract)}

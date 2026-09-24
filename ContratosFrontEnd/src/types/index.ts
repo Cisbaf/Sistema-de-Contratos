@@ -74,3 +74,44 @@ export interface ContractAttachment {
   removedAt: string | null;
   removedBy: User | null;
 }
+
+export interface Lancamento {
+  id: number;
+  contratoId: number;
+  numeroProcesso: string;
+  notaFiscal: string;
+  parcela: string | null;
+  competencia: string;
+  valorNota: number;
+  observacoes: string | null;
+  criadoEm: string;
+  criadoPor: User | null;
+  atualizadoEm: string | null;
+  atualizadoPor: User | null;
+}
+
+export interface LancamentoRequest {
+  numeroProcesso: string;
+  notaFiscal: string;
+  parcela: string | null;
+  competencia: string;
+  valorNota: number;
+  observacoes: string | null;
+}
+
+export type TipoEventoLancamento = "EDICAO" | "EXCLUSAO";
+
+export interface LancamentoHistorico {
+  id: number;
+  lancamentoId: number;
+  contratoId: number;
+  tipoEvento: TipoEventoLancamento;
+  numeroProcesso: string;
+  notaFiscal: string;
+  parcela: string | null;
+  competencia: string;
+  valorNota: number;
+  observacoes: string | null;
+  alteradoEm: string;
+  alteradoPor: User | null;
+}
