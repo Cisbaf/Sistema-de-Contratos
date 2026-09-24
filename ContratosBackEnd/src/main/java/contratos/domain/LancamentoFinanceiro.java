@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Entity
 @Getter
@@ -20,9 +21,11 @@ public class LancamentoFinanceiro {
     private String numeroProcesso;
     @Column(nullable = false)
     private String notaFiscal;
+    @Column(nullable = false)
+    private LocalDate competencia;
 
     private String parcela;
-    private LocalDate competencia;
+    private boolean ativo = true;
 
     @Column(nullable = false)
     private BigDecimal valorNota;
@@ -33,7 +36,7 @@ public class LancamentoFinanceiro {
     @JoinColumn(nullable = false)
     private Contract contrato;
 
-
+    @Column(nullable = false)
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
 
@@ -44,5 +47,36 @@ public class LancamentoFinanceiro {
     @ManyToOne(fetch = FetchType.LAZY)
     private AppUser atualizadoPor;
 
+    public LancamentoFinanceiro(String numeroProcesso, String notaFiscal, LocalDate competencia, String parcela,
+                                BigDecimal valorNota, String observacoes, Contract contrato,
+                                AppUser criadoPor) {
+        this.numeroProcesso = numeroProcesso;
+        this.notaFiscal = notaFiscal;
+        this.competencia = competencia;
+        this.parcela = parcela;
+        this.valorNota = valorNota;
+        this.observacoes = observacoes;
+        this.contrato = contrato;
+        this.criadoEm = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        this.criadoPor = criadoPor;
+    }
 
+    public void updateLancamento(String numeroProcesso, String notaFiscal, LocalDate competencia, String parcela,
+                                 BigDecimal valorNota, String observacoes,
+                                 AppUser atualizadoPor) {
+        this.numeroProcesso = numeroProcesso;
+        this.notaFiscal = notaFiscal;
+        this.competencia = competencia;
+        this.parcela = parcela;
+        this.valorNota = valorNota;
+        this.observacoes = observacoes;
+        this.atualizadoEm = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        this.atualizadoPor = atualizadoPor;
+    }
+
+    public void desativaLancamento(AppUser atualizadoPor) {
+        this.ativo = false;
+        this.atualizadoEm = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        this.atualizadoPor = atualizadoPor;
+    }
 }
