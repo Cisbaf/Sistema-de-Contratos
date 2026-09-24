@@ -13,7 +13,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import HistoryIcon from "@mui/icons-material/History";
 import CloseIcon from "@mui/icons-material/Close";
 import { Alert, Box, Button, Divider, Drawer, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const date = (value: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
@@ -116,6 +116,18 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
     }
   }
 
+  // "Valor restante do contrato" de cada linha (spec 7.2): valor global menos as notas até aquela linha, na ordem
+  // da competência (desempate pela data de criação). Em centavos inteiros para não acumular erro de ponto flutuante.
+  const linhas = useMemo(() => {
+    const ordenadas = [...lancamentos].sort((a, b) =>
+      a.competencia.localeCompare(b.competencia) || a.criadoEm.localeCompare(b.criadoEm) || a.id - b.id);
+    let restanteCentavos = Math.round(Number(contract?.valueGlobal ?? 0) * 100);
+    return ordenadas.map(item => {
+      restanteCentavos -= Math.round(Number(item.valorNota) * 100);
+      return { item, restante: restanteCentavos / 100 };
+    });
+  }, [lancamentos, contract?.valueGlobal]);
+
   if (!contract) return null;
 
   const saldoNegativoOuZero = saldo !== null && saldo <= 0;
@@ -164,27 +176,29 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
 
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
       <TableContainer>
-        <Table sx={{ minWidth: 1000 }}>
+        <Table sx={{ minWidth: 1150 }}>
           <TableHead>
             <TableRow>
               <TableCell>Competência</TableCell>
               <TableCell>Nota fiscal</TableCell>
               <TableCell>Processo</TableCell>
               <TableCell>Parcela</TableCell>
-              <TableCell align="right">Valor</TableCell>
+              <TableCell align="right">Valor da NF</TableCell>
+              <TableCell align="right">Valor restante do contrato</TableCell>
               <TableCell>Observações</TableCell>
               <TableCell>Lançado por</TableCell>
               <TableCell align="right" sx={stickyActions}>Ações</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {lancamentos.map(item => (
+            {linhas.map(({ item, restante }) => (
               <TableRow key={item.id} hover>
                 <TableCell>{competenciaLabel(item.competencia)}</TableCell>
                 <TableCell><Typography fontWeight={700}>{item.notaFiscal}</Typography></TableCell>
                 <TableCell>{item.numeroProcesso}</TableCell>
                 <TableCell>{item.parcela || "—"}</TableCell>
                 <TableCell align="right">{money.format(item.valorNota)}</TableCell>
+                <TableCell align="right">{money.format(restante)}</TableCell>
                 <TableCell sx={{ maxWidth: 260, wordBreak: "break-word" }}>{item.observacoes || "—"}</TableCell>
                 <TableCell>{item.criadoPor?.name ?? "—"}</TableCell>
                 <TableCell align="right" sx={{ ...stickyActions, bgcolor: "background.paper" }}>
@@ -212,7 +226,7 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
             ))}
             {lancamentos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 8, color: "text.secondary" }}>
+                <TableCell colSpan={9} align="center" sx={{ py: 8, color: "text.secondary" }}>
                   Nenhum lançamento neste contrato.
                 </TableCell>
               </TableRow>
