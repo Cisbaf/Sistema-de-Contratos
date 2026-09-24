@@ -149,6 +149,16 @@ public class DocumentTemplateService {
                     "numero_processo",
                     "nome_fiscal"
             );
+
+            // Ateste dos fiscais (botão "Gerar Checklist" do lançamento financeiro)
+            case PAYMENT_CHECKLIST -> Set.of(
+                    "numero_contrato",
+                    "data_inicio",
+                    "data_termino",
+                    "mes_referencia",
+                    "numero_nota_fiscal",
+                    "assinaturas_fiscais"
+            );
         };
     }
 }
