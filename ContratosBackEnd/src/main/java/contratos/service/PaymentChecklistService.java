@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 
 /**
  * Ateste dos fiscais ("Gerar Checklist" da spec, item 7.3): documento por lançamento financeiro, gerado a
- * partir do template PAYMENT_CHECKLIST. Assinam todos os fiscais do contrato (nome e setor de cada um).
+ * partir do template PAYMENT_CHECKLIST. Assina só o fiscal que gera (nome e setor do usuário logado): cada fiscal gera e assina o seu ateste.
  * Cada geração vira uma nova versão em GeneratedDocument; o nome do arquivo identifica contrato e nota fiscal.
  */
 @Service
@@ -111,7 +111,8 @@ public class PaymentChecklistService {
                 "data_termino", contrato.getEndDate().format(DATE_FMT),
                 "mes_referencia", mesReferencia,
                 "numero_nota_fiscal", lancamento.getNotaFiscal(),
-                "assinaturas_fiscais", montarAssinaturas(contrato)
+                "nome_fiscal", usuario.getName(),
+                "setor_fiscal", usuario.getSector() == null ? "" : usuario.getSector().getName()
         );
         var matcher = PLACEHOLDER.matcher(content);
         var sb = new StringBuilder();
@@ -121,15 +122,6 @@ public class PaymentChecklistService {
         }
         matcher.appendTail(sb);
         return removerEscapeMarkdown(sb.toString());
-    }
-
-    /** Um bloco por fiscal do contrato (nome em negrito, setor em itálico), em ordem alfabética. */
-    private String montarAssinaturas(Contract contrato) {
-        return contrato.getFiscais().stream()
-                .sorted(java.util.Comparator.comparing(AppUser::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(f -> "**" + f.getName() + "**"
-                        + (f.getSector() == null ? "" : "  \n*" + f.getSector().getName() + "*"))
-                .collect(java.util.stream.Collectors.joining("\n\n"));
     }
 
     private String removerEscapeMarkdown(String texto) {

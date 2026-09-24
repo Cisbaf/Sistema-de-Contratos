@@ -4,6 +4,14 @@ import type { Lancamento, LancamentoRequest } from "@/types";
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField } from "@mui/material";
 import { useEffect, useState } from "react";
 
+// Máscara MM/AAAA: aceita só dígitos e põe a barra sozinha. Não usa <input type="month"> porque o Firefox
+// desktop não suporta e o valor digitado chegava ao backend fora do formato.
+const maskCompetencia = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 6);
+  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+};
+const competenciaValida = (value: string) => /^(0[1-9]|1[0-2])\/\d{4}$/.test(value) && Number(value.slice(3)) >= 2000;
+
 const empty = { numeroProcesso: "", notaFiscal: "", parcela: "", competencia: "", valorNota: "", observacoes: "" };
 
 export default function LancamentoFormDialog({ open, lancamento, saving, onClose, onSubmit }: {
@@ -21,7 +29,7 @@ export default function LancamentoFormDialog({ open, lancamento, saving, onClose
       numeroProcesso: lancamento.numeroProcesso,
       notaFiscal: lancamento.notaFiscal,
       parcela: lancamento.parcela ?? "",
-      competencia: lancamento.competencia.slice(0, 7), // yyyy-MM, formato do input type="month"
+      competencia: `${lancamento.competencia.slice(5, 7)}/${lancamento.competencia.slice(0, 4)}`, // yyyy-MM-dd -> MM/AAAA
       valorNota: String(lancamento.valorNota),
       observacoes: lancamento.observacoes ?? "",
     } : empty);
@@ -31,14 +39,14 @@ export default function LancamentoFormDialog({ open, lancamento, saving, onClose
     setForm(current => ({ ...current, [field]: event.target.value }));
 
   const valor = Number(form.valorNota.replace(",", "."));
-  const valid = form.numeroProcesso.trim() && form.notaFiscal.trim() && form.competencia && valor > 0;
+  const valid = form.numeroProcesso.trim() && form.notaFiscal.trim() && competenciaValida(form.competencia) && valor > 0;
 
   function submit() {
     onSubmit({
       numeroProcesso: form.numeroProcesso.trim(),
       notaFiscal: form.notaFiscal.trim(),
       parcela: form.parcela.trim() || null,
-      competencia: `${form.competencia}-01`,
+      competencia: `${form.competencia.slice(3)}-${form.competencia.slice(0, 2)}-01`, // MM/AAAA -> yyyy-MM-01
       valorNota: valor,
       observacoes: form.observacoes.trim() || null,
     });
@@ -55,8 +63,12 @@ export default function LancamentoFormDialog({ open, lancamento, saving, onClose
             <TextField label="Parcela" value={form.parcela} onChange={set("parcela")} fullWidth />
           </Stack>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-            <TextField label="Competência" type="month" value={form.competencia} onChange={set("competencia")}
-              required fullWidth slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField label="Competência" placeholder="MM/AAAA" value={form.competencia}
+              onChange={event => setForm(current => ({ ...current, competencia: maskCompetencia(event.target.value) }))}
+              required fullWidth
+              error={form.competencia.length === 7 && !competenciaValida(form.competencia)}
+              helperText={form.competencia.length === 7 && !competenciaValida(form.competencia) ? "Use um mês de 01 a 12" : undefined}
+              slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 7 } }} />
             <TextField label="Valor da nota (R$)" type="number" value={form.valorNota} onChange={set("valorNota")}
               required fullWidth slotProps={{ htmlInput: { min: 0, step: "0.01" } }} />
           </Stack>

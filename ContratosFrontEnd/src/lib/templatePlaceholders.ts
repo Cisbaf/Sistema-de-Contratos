@@ -12,7 +12,7 @@ const SAMPLE_VALUES: Record<string, string> = {
   data_inicio: "15/03/2026",
   mes_referencia: "SETEMBRO 2026",
   numero_nota_fiscal: "174",
-  assinaturas_fiscais: "**Maria Souza**  \n*Departamento de Engenharia*\n\n**João Pereira**  \n*Setor de Compras*",
+  setor_fiscal: "Departamento de Engenharia",
   observacoes: "Contrato cumprido dentro do prazo, sem pendências registradas.",
 };
 
@@ -60,7 +60,8 @@ export const TEMPLATE_TYPE_VARIABLES: Record<DocumentTemplateType, string[]> = {
     "data_termino",
     "mes_referencia",
     "numero_nota_fiscal",
-    "assinaturas_fiscais",
+    "nome_fiscal",
+    "setor_fiscal",
   ],
 };
 

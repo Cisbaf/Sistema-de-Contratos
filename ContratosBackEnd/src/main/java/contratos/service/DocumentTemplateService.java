@@ -157,7 +157,8 @@ public class DocumentTemplateService {
                     "data_termino",
                     "mes_referencia",
                     "numero_nota_fiscal",
-                    "assinaturas_fiscais"
+                    "nome_fiscal",
+                    "setor_fiscal"
             );
         };
     }

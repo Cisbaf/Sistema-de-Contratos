@@ -2,9 +2,10 @@
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import LancamentoFormDialog from "@/components/contracts/LancamentoFormDialog";
+import PaymentChecklistDialog from "@/components/contracts/PaymentChecklistDialog";
 import LancamentoHistoryDialog from "@/components/contracts/LancamentoHistoryDialog";
 import { Feedback, PageLoading } from "@/components/Feedback";
-import { deleteJson, downloadFile, getJson, postJson, putJson } from "@/lib/api";
+import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
 import type { Contract, Lancamento, LancamentoRequest } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -44,7 +45,7 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<Lancamento | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [generatingId, setGeneratingId] = useState<number | null>(null);
+  const [checklistLancamento, setChecklistLancamento] = useState<Lancamento | null>(null);
 
   const load = useCallback(async () => {
     if (contractId === null) return;
@@ -99,20 +100,6 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
       setRemoving(null);
       fail(error, "Erro ao excluir lançamento");
       await load();
-    }
-  }
-
-  // Cada clique gera uma nova versão do ateste (guardada em "Documentos gerados") e já baixa o PDF.
-  async function gerarChecklist(item: Lancamento) {
-    setGeneratingId(item.id);
-    try {
-      const doc = await postJson<{ id: number; fileName: string; version: number }>(`/lancamentos/${item.id}/checklist`);
-      await downloadFile(`/generate-document/download?documentId=${doc.id}`, doc.fileName);
-      setFeedback({ message: `Ateste gerado (versão ${doc.version})`, error: false });
-    } catch (error) {
-      fail(error, "Erro ao gerar o ateste");
-    } finally {
-      setGeneratingId(null);
     }
   }
 
@@ -205,7 +192,7 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
                   <Stack direction="row" spacing={0.25} justifyContent="flex-end">
                     <Tooltip title="Gerar checklist (ateste)">
                       <span>
-                        <IconButton aria-label="Gerar checklist" disabled={generatingId === item.id} onClick={() => void gerarChecklist(item)}>
+                        <IconButton aria-label="Gerar checklist" onClick={() => setChecklistLancamento(item)}>
                           <DescriptionOutlinedIcon />
                         </IconButton>
                       </span>
@@ -239,6 +226,12 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
       </Box>
 
     <LancamentoFormDialog open={formOpen} lancamento={editing} saving={saving} onClose={() => setFormOpen(false)} onSubmit={payload => void save(payload)} />
+    <PaymentChecklistDialog
+      open={Boolean(checklistLancamento)}
+      lancamento={checklistLancamento}
+      onClose={() => setChecklistLancamento(null)}
+      onGenerated={message => setFeedback({ message, error: false })}
+    />
     <LancamentoHistoryDialog open={historyOpen} contractId={contract.id} onClose={() => setHistoryOpen(false)} />
     <ConfirmDialog
       open={Boolean(removing)}
