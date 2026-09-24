@@ -10,4 +10,9 @@ public interface LancamentoFinanceiroRepository extends JpaRepository<Lancamento
 
     boolean existsByContrato_IdAndNotaFiscal(Long contratoId, String notaFiscal);
 
+
+    /** Trava o lançamento antes de editar/excluir: duas edições do mesmo lançamento não se misturam. */
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("select l from LancamentoFinanceiro l where l.id = :id")
+    java.util.Optional<LancamentoFinanceiro> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
 }

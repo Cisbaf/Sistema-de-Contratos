@@ -19,10 +19,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -33,9 +35,11 @@ public class LancamentoFinanceiroService {
     private final UserRepository userRepository;
     private final ContractAuthorization authorization;
 
-    @Transactional
+    // READ_COMMITTED + trava do contrato: quem chega depois espera e já enxerga o saldo atualizado
+    // (no REPEATABLE READ padrão do MySQL ele leria um saldo antigo e poderia estourar o contrato).
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public LancamentoFinanceiroResponse criar(Long contratoId, LancamentoFinanceiroRequest request, String username) {
-        Contract contrato = buscarContrato(contratoId);
+        Contract contrato = bloquearContrato(contratoId);
         AppUser usuario = buscarUsuario(username);
         String notaFiscal = request.notaFiscal().trim();
 
@@ -51,21 +55,26 @@ public class LancamentoFinanceiroService {
                 request.numeroProcesso().trim(),
                 notaFiscal,
                 request.competencia().withDayOfMonth(1),
-                request.parcela(),
+                vazioParaNull(request.parcela()),
                 request.valorNota(),
-                request.observacoes(),
+                vazioParaNull(request.observacoes()),
                 contrato,
                 usuario));
         return mapResponse(lancamento);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public LancamentoFinanceiroResponse editar(Long lancamentoId, LancamentoFinanceiroRequest request,
                                                Authentication authentication) {
         LancamentoFinanceiro lancamento = buscarLancamentoAtivo(lancamentoId, authentication);
         AppUser usuario = buscarUsuario(authentication.getName());
         Contract contrato = lancamento.getContrato();
         String notaFiscal = request.notaFiscal().trim();
+
+        // Nada mudou: não grava histórico nem atualiza "atualizado por/em".
+        if (semAlteracao(lancamento, request, notaFiscal)) {
+            return mapResponse(lancamento);
+        }
 
         // Só checa duplicidade se a nota fiscal mudou; senão o próprio lançamento seria contado como duplicado.
         // equalsIgnoreCase porque a collation padrão do MySQL não diferencia maiúsculas de minúsculas.
@@ -87,14 +96,14 @@ public class LancamentoFinanceiroService {
                 request.numeroProcesso().trim(),
                 notaFiscal,
                 request.competencia().withDayOfMonth(1),
-                request.parcela(),
+                vazioParaNull(request.parcela()),
                 request.valorNota(),
-                request.observacoes(),
+                vazioParaNull(request.observacoes()),
                 usuario);
         return mapResponse(lancamento);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void excluir(Long lancamentoId, Authentication authentication) {
         LancamentoFinanceiro lancamento = buscarLancamentoAtivo(lancamentoId, authentication);
 
@@ -141,6 +150,24 @@ public class LancamentoFinanceiroService {
         }
     }
 
+    private boolean semAlteracao(LancamentoFinanceiro atual, LancamentoFinanceiroRequest novo, String notaFiscal) {
+        return atual.getNumeroProcesso().equals(novo.numeroProcesso().trim())
+                && atual.getNotaFiscal().equals(notaFiscal)
+                && atual.getCompetencia().equals(novo.competencia().withDayOfMonth(1))
+                && atual.getValorNota().compareTo(novo.valorNota()) == 0
+                && Objects.equals(atual.getParcela(), vazioParaNull(novo.parcela()))
+                && Objects.equals(atual.getObservacoes(), vazioParaNull(novo.observacoes()));
+    }
+
+    private String vazioParaNull(String texto) {
+        return texto == null || texto.isBlank() ? null : texto.trim();
+    }
+
+    private Contract bloquearContrato(Long contratoId) {
+        return contractRepository.findByIdForUpdate(contratoId)
+                .orElseThrow(() -> new EntityNotFoundException("Contrato não encontrado com o id: " + contratoId));
+    }
+
     private Contract buscarContrato(Long contratoId) {
         return contractRepository.findById(contratoId)
                 .orElseThrow(() -> new EntityNotFoundException("Contrato não encontrado com o id: " + contratoId));
@@ -153,8 +180,11 @@ public class LancamentoFinanceiroService {
 
     /** Autorização vem antes da checagem de "ativo" para não revelar o estado de lançamentos de contratos alheios. */
     private LancamentoFinanceiro buscarLancamentoAtivo(Long lancamentoId, Authentication authentication) {
-        LancamentoFinanceiro lancamento = repository.findById(lancamentoId)
+        // Trava o lançamento e depois o contrato (sempre nessa ordem, para não gerar deadlock) ANTES de ler
+        // o saldo: o valor antigo e a soma dos outros lançamentos precisam estar atualizados.
+        LancamentoFinanceiro lancamento = repository.findByIdForUpdate(lancamentoId)
                 .orElseThrow(() -> new EntityNotFoundException("Lançamento não encontrado com o id: " + lancamentoId));
+        bloquearContrato(lancamento.getContrato().getId());
         if (!authorization.canRead(lancamento.getContrato().getId(), authentication)) {
             throw new AccessDeniedException("Usuário não tem permissão para alterar este lançamento");
         }
