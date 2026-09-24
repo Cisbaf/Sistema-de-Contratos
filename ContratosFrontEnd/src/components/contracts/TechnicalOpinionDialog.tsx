@@ -1,11 +1,12 @@
 "use client";
 
 import { useAuth } from "@/components/DashboardShell";
+import { copyRenderedContent } from "@/lib/clipboard";
 import { getJson, postJson } from "@/lib/api";
 import type { Contract } from "@/types";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, TextField, Tooltip, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -25,6 +26,7 @@ export default function TechnicalOpinionDialog({
     const auth = useAuth();
     const [observations, setObservations] = useState("");
     const [preview, setPreview] = useState("");
+    const previewRef = useRef<HTMLDivElement>(null);
     const [progress, setProgress] = useState<FiscalProgress[]>([]);
     const [collective, setCollective] = useState("");
     const [loadingPreview, setLoadingPreview] = useState(false);
@@ -89,7 +91,8 @@ export default function TechnicalOpinionDialog({
 
     async function copiarTexto() {
         try {
-            await navigator.clipboard.writeText(preview);
+            if (!previewRef.current) throw new Error("Prévia indisponível");
+            await copyRenderedContent(previewRef.current);
             setCopiado(true);
         } catch {
             setError("Não foi possível copiar o texto. Copie manualmente antes de enviar.");
@@ -159,7 +162,7 @@ export default function TechnicalOpinionDialog({
                             </Tooltip>
                         </Stack>
 
-                        <Box sx={{ "& p": { my: 1 }, minHeight: 240 }}>
+                        <Box ref={previewRef} sx={{ "& p": { my: 1 }, minHeight: 240 }}>
                             {loadingPreview ? (
                                 <Box py={4} display="grid" sx={{ placeItems: "center" }}><CircularProgress size={24} /></Box>
                             ) : (

@@ -1,11 +1,12 @@
 "use client";
 
 import { useAuth } from "@/components/DashboardShell";
+import { copyRenderedContent } from "@/lib/clipboard";
 import { getJson, postJson } from "@/lib/api";
 import type { Contract } from "@/types";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Divider, Stack, Tooltip, Typography } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -22,6 +23,7 @@ export default function InterestEmailDialog({
 }) {
     const auth = useAuth();
     const [preview, setPreview] = useState("");
+    const previewRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(false);
     const [confirming, setConfirming] = useState(false);
     const [error, setError] = useState("");
@@ -47,7 +49,8 @@ export default function InterestEmailDialog({
 
     async function copiarTexto() {
         try {
-            await navigator.clipboard.writeText(preview);
+            if (!previewRef.current) throw new Error("Prévia indisponível");
+            await copyRenderedContent(previewRef.current);
             setCopiado(true);
         } catch {
             setError("Não foi possível copiar o texto. Copie manualmente antes de marcar como enviado.");
@@ -107,7 +110,7 @@ export default function InterestEmailDialog({
                                 </Button>
                             </Tooltip>
                         </Stack>
-                        <Box sx={{ "& p": { my: 1 }, minHeight: 320 }}>
+                        <Box ref={previewRef} sx={{ "& p": { my: 1 }, minHeight: 320 }}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{preview}</ReactMarkdown>
                         </Box>
 
