@@ -6,7 +6,7 @@ O projeto está sendo evoluído para uma arquitetura separada:
 - `ContratosFrontEnd/`: Next.js App Router, TypeScript e Material UI (MUI);
 - `src/`: código Django anterior, mantido temporariamente como referência para migração de dados.
 
-A referência funcional oficial é `especificacao_sistema_cisbaf.md`. O planejamento técnico está em `PLANO_EVOLUCAO_CISBAF.md`.
+A referência funcional oficial é `especificacao_sistema_cisbaf.md`. O planejamento técnico está em `PLANO_EVOLUCAO_CISBAF.md`, e o estado atual do projeto (módulos concluídos, decisões e próximo passo) em `CONTEXTO_IA.md`. Situação em 25/09/2026: módulos de contratos, renovação/documentos, anexos e financeiro (com o ateste dos fiscais) concluídos; próximo módulo: notificações automáticas. Esses documentos de planejamento não são versionados neste repositório.
 
 ## Executar com Docker
 
@@ -23,6 +23,10 @@ O backend segue o mesmo tratamento do projeto Troca de Plantão: todos os endpoi
 
 - `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/validate`;
 - `GET|POST /api/contracts`, `GET|PUT|DELETE /api/contracts/{id}`, `GET /api/contracts/mine`;
+- renovação: `/api/contracts/{id}/interest-email/*`, `/api/contracts/{id}/technical-opinion/*`, `GET /api/contracts/{id}/supplier-mask/preview`;
+- templates e documentos: `/api/document-templates`, `/api/generate-document` (`/history`, `/download`);
+- anexos do contrato: `/api/attachment/*`;
+- financeiro: `/api/contracts/{id}/lancamentos` (`/saldo`, `/historico`), `PUT|DELETE /api/lancamentos/{id}`, `/api/lancamentos/{id}/checklist` (`/preview`);
 - `GET|POST /api/users`, `PUT|DELETE /api/users/{id}`, `GET /api/users/me`;
 - `GET|POST /api/sectors`, `PUT|DELETE /api/sectors/{id}`.
 
