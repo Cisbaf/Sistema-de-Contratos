@@ -42,4 +42,8 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
     boolean existsByFiscaisIdAndEndDateGreaterThanEqual(Long userId, LocalDate date);
 
     List<Contract> findAllByStatusAndEndDateGreaterThanEqual(ContractStatus status, LocalDate refDate);
+
+    /** Contratos ainda não vencidos, em qualquer status, com os fiscais já carregados (base das notificações). */
+    @EntityGraph(attributePaths = {"fiscais"})
+    List<Contract> findAllByEndDateGreaterThanEqual(LocalDate refDate);
 }

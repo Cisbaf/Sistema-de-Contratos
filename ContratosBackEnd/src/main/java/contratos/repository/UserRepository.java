@@ -1,7 +1,9 @@
 package contratos.repository;
 
 import contratos.domain.AppUser;
+import java.util.List;
 import java.util.Optional;
+import contratos.domain.enums.PerfilUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<AppUser, Long> {
@@ -9,4 +11,8 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     long countBySectorId(Long sectorId);
+
+    List<AppUser> findAllByPerfil(PerfilUsuario perfil);
+
+    List<AppUser> findAllBySector_Name(String sectorName);
 }
