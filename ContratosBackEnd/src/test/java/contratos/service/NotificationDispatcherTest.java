@@ -73,7 +73,7 @@ class NotificationDispatcherTest {
     @Autowired UserRepository users;
     @Autowired SectorRepository sectors;
 
-    AppUser f1, f2, ci, buyer;
+    AppUser f1, f2, ci, outsider;
 
     @BeforeEach
     void setUp() {
@@ -84,13 +84,13 @@ class NotificationDispatcherTest {
         users.deleteAll();
         sectors.deleteAll();
 
-        Sector compras = sectors.save(new Sector("Compras"));
         Sector ti = sectors.save(new Sector("TI"));
         f1 = users.save(new AppUser("f1", "x", "Fiscal Um", "f1@cisbaf.org.br", null, ti, PerfilUsuario.FISCAL));
-        // f2 é fiscal do contrato E do setor Compras E escreve o e-mail com maiúsculas: deve receber 1 só
-        f2 = users.save(new AppUser("f2", "x", "Fiscal Dois", "F2@Cisbaf.org.br ", null, compras, PerfilUsuario.FISCAL));
+        // f2 é fiscal do contrato E do Controle Interno, com e-mail em maiúsculas: deve receber 1 só
+        f2 = users.save(new AppUser("f2", "x", "Fiscal Dois", "F2@Cisbaf.org.br ", null, ti, PerfilUsuario.CONTROLE_INTERNO));
         ci = users.save(new AppUser("ci", "x", "Controle", "ci@cisbaf.org.br", null, ti, PerfilUsuario.CONTROLE_INTERNO));
-        buyer = users.save(new AppUser("buyer", "x", "Comprador", "compras@cisbaf.org.br", null, compras, PerfilUsuario.FISCAL));
+        // fiscal de outro contrato: não pode receber alertas deste
+        outsider = users.save(new AppUser("outsider", "x", "Outro Fiscal", "outsider@cisbaf.org.br", null, ti, PerfilUsuario.FISCAL));
     }
 
     private Contract contract(String number, LocalDate end, AppUser... fiscais) {
@@ -109,18 +109,19 @@ class NotificationDispatcherTest {
 
         var result = dispatcher.runDaily(TODAY);
 
-        assertThat(result.delivered()).isEqualTo(4);
+        assertThat(result.delivered()).isEqualTo(3);
         assertThat(result.failed()).isZero();
-        // f2 aparece como fiscal, Compras e com e-mail em maiúsculas: um destinatário só, normalizado
+        // f2 aparece como fiscal e como Controle Interno, com e-mail em maiúsculas: um destinatário só, normalizado
         assertThat(sender.sentTo).containsExactlyInAnyOrder(
-                "f1@cisbaf.org.br", "f2@cisbaf.org.br", "ci@cisbaf.org.br", "compras@cisbaf.org.br");
+                "f1@cisbaf.org.br", "f2@cisbaf.org.br", "ci@cisbaf.org.br");
+        assertThat(sender.sentTo).doesNotContain("outsider@cisbaf.org.br");
 
         List<NotificationLog> rows = logs.findAll();
-        assertThat(rows).hasSize(4).allMatch(r -> r.getStatus() == NotificationStatus.SENT);
+        assertThat(rows).hasSize(3).allMatch(r -> r.getStatus() == NotificationStatus.SENT);
         assertThat(rows).filteredOn(r -> r.getRecipientAddress().equals("f2@cisbaf.org.br"))
                 .singleElement().satisfies(r -> assertThat(r.getRecipientRole()).isEqualTo(RecipientRole.FISCAL));
-        assertThat(rows).filteredOn(r -> r.getRecipientAddress().equals("compras@cisbaf.org.br"))
-                .singleElement().satisfies(r -> assertThat(r.getRecipientRole()).isEqualTo(RecipientRole.PURCHASING));
+        assertThat(rows).filteredOn(r -> r.getRecipientAddress().equals("ci@cisbaf.org.br"))
+                .singleElement().satisfies(r -> assertThat(r.getRecipientRole()).isEqualTo(RecipientRole.INTERNAL_CONTROL));
     }
 
     @Test
@@ -143,7 +144,7 @@ class NotificationDispatcherTest {
         var first = dispatcher.runDaily(TODAY);
 
         assertThat(first.failed()).isEqualTo(1);
-        assertThat(first.delivered()).isEqualTo(3); // f1 e os dois usuários de Compras (f2 e comprador)
+        assertThat(first.delivered()).isEqualTo(2); // f1 e f2 (que também é Controle Interno)
         assertThat(logs.findAll()).filteredOn(r -> r.getStatus() == NotificationStatus.FAILED)
                 .singleElement().satisfies(r -> {
                     assertThat(r.getRecipientAddress()).isEqualTo("ci@cisbaf.org.br");
@@ -157,7 +158,7 @@ class NotificationDispatcherTest {
 
         assertThat(sender.sentTo).containsExactly("ci@cisbaf.org.br");
         assertThat(second.failed()).isZero();
-        assertThat(logs.findAll()).hasSize(4).allMatch(r -> r.getStatus() == NotificationStatus.SENT);
+        assertThat(logs.findAll()).hasSize(3).allMatch(r -> r.getStatus() == NotificationStatus.SENT);
     }
 
     @Test
@@ -174,8 +175,8 @@ class NotificationDispatcherTest {
         sender.sentTo.clear();
         dispatcher.runDaily(TODAY);
 
-        assertThat(before).isEqualTo(4); // f1, f2 e comprador (Compras) e Controle Interno
-        assertThat(sender.sentTo).hasSize(4);
+        assertThat(before).isEqualTo(3); // f1, f2 (Controle Interno) e ci
+        assertThat(sender.sentTo).hasSize(3);
         assertThat(logs.findAll()).hasSize(before * 2);
     }
 }

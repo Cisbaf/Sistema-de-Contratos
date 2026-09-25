@@ -2,8 +2,10 @@ package contratos.service;
 
 import contratos.api.dto.Notificacao.PlannedNotification;
 import contratos.api.dto.Notificacao.Recipient;
+import contratos.config.NotificationProperties;
 import contratos.domain.enums.NotificationStatus;
 import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -24,27 +26,46 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiredArgsConstructor
 public class NotificationDispatcher {
 
-    /** @param delivered enviados (ou simulados) nesta execução; @param failed falhas nesta execução */
-    public record Result(int delivered, int failed) {
+    /**
+     * @param delivered enviados (ou simulados) nesta execução
+     * @param failed    falhas nesta execução
+     * @param skipped   ignorados por não estarem na lista de segurança (sem log)
+     */
+    public record Result(int delivered, int failed, int skipped) {
     }
 
     private final NotificationPlanner planner;
     private final NotificationSender sender;
     private final NotificationLogRecorder recorder;
+    private final NotificationProperties properties;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
+
+    @PostConstruct
+    void avisarListaDeSeguranca() {
+        var allowed = properties.mail().allowedRecipients();
+        if (!allowed.isEmpty()) {
+            log.warn("Lista de segurança de notificações ATIVA: apenas {} destinatário(s) receberão alertas: {}",
+                    allowed.size(), allowed);
+        }
+    }
 
     public Result runDaily(LocalDate today) {
         Objects.requireNonNull(today, "A data de referência é obrigatória.");
         if (!running.compareAndSet(false, true)) {
             log.warn("Envio de notificações já em andamento; execução ignorada.");
-            return new Result(0, 0);
+            return new Result(0, 0, 0);
         }
         try {
             int delivered = 0;
             int failed = 0;
+            int skipped = 0;
             for (PlannedNotification planned : planner.planAll(today)) {
                 for (Recipient recipient : planned.recipients()) {
+                    if (!properties.mail().allows(recipient.address())) {
+                        skipped++;
+                        continue;
+                    }
                     if (deliver(planned, recipient, today)) {
                         delivered++;
                     } else {
@@ -52,7 +73,7 @@ public class NotificationDispatcher {
                     }
                 }
             }
-            return new Result(delivered, failed);
+            return new Result(delivered, failed, skipped);
         } finally {
             running.set(false);
         }

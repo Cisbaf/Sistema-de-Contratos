@@ -24,8 +24,8 @@ public class NotificationJob {
     public void runDaily() {
         try {
             var result = dispatcher.runDaily(LocalDate.now(ZoneId.of("America/Sao_Paulo")));
-            log.info("Notificações do dia concluídas: {} enviada(s)/simulada(s), {} falha(s)",
-                    result.delivered(), result.failed());
+            log.info("Notificações do dia concluídas: {} enviada(s)/simulada(s), {} falha(s), {} ignorada(s) pela lista de segurança",
+                    result.delivered(), result.failed(), result.skipped());
         } catch (Exception e) {
             log.error("Falha ao executar o job de notificações: {}", e.getMessage(), e);
         }

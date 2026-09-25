@@ -14,5 +14,4 @@ public interface UserRepository extends JpaRepository<AppUser, Long> {
 
     List<AppUser> findAllByPerfil(PerfilUsuario perfil);
 
-    List<AppUser> findAllBySector_Name(String sectorName);
 }

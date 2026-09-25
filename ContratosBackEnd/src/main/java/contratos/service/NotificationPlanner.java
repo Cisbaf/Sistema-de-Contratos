@@ -86,14 +86,11 @@ public class NotificationPlanner {
         return Optional.of(new PlannedNotification(contract, alertType, contract.getEndDate(), pending));
     }
 
-    /** Fiscais, depois Controle Interno, depois Compras; quem aparece em mais de um papel fica com o primeiro. */
+    /** Fiscais do contrato e todo o Controle Interno; quem aparece nos dois papéis fica com o primeiro (fiscal). */
     private List<Recipient> resolveRecipients(Contract contract) {
         Map<String, Recipient> byAddress = new LinkedHashMap<>();
         add(byAddress, RecipientRole.FISCAL, contract.getFiscais());
         add(byAddress, RecipientRole.INTERNAL_CONTROL, users.findAllByPerfil(PerfilUsuario.CONTROLE_INTERNO));
-        if (properties.hasPurchasingSector()) {
-            add(byAddress, RecipientRole.PURCHASING, users.findAllBySector_Name(properties.purchasingSectorName()));
-        }
         return new ArrayList<>(byAddress.values());
     }
 

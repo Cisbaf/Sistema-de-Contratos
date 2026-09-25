@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SmtpNotificationSenderTest {
 
     private NotificationProperties props(String from) {
-        return new NotificationProperties(6, 4, "Compras", new NotificationProperties.Mail(true, from));
+        return new NotificationProperties(6, 4, new NotificationProperties.Mail(true, from, java.util.List.of()));
     }
 
     @Test
