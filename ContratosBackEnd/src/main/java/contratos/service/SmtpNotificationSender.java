@@ -22,6 +22,8 @@ public class SmtpNotificationSender implements NotificationSender {
 
     private final JavaMailSender mailSender;
     private final String from;
+    private final long delayMs;
+    private long lastAttemptNanos; // 0 = ainda não houve tentativa; protegido por synchronized em send()
 
     public SmtpNotificationSender(JavaMailSender mailSender,
                                   NotificationProperties properties,
@@ -29,6 +31,7 @@ public class SmtpNotificationSender implements NotificationSender {
                                   @Value("${spring.mail.password:}") String smtpPassword) {
         this.mailSender = mailSender;
         this.from = properties.mail().from().isEmpty() ? smtpUsername : properties.mail().from();
+        this.delayMs = properties.mail().delayMs();
 
         // Falha na subida, não na primeira madrugada em que o job rodar.
         if (from == null || from.isBlank()) {
@@ -41,8 +44,10 @@ public class SmtpNotificationSender implements NotificationSender {
         }
     }
 
+    /** Serializado e espaçado: nunca dois envios seguidos em menos de {@code delayMs}. */
     @Override
-    public void send(Recipient recipient, NotificationMessage message) {
+    public synchronized void send(Recipient recipient, NotificationMessage message) {
+        waitBetweenSends();
         try {
             MimeMessage mime = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, StandardCharsets.UTF_8.name());
@@ -53,6 +58,23 @@ public class SmtpNotificationSender implements NotificationSender {
             mailSender.send(mime);
         } catch (jakarta.mail.MessagingException | java.io.UnsupportedEncodingException e) {
             throw new IllegalStateException("Não foi possível montar o e-mail: " + e.getMessage(), e);
+        } finally {
+            lastAttemptNanos = System.nanoTime();
+        }
+    }
+
+    private void waitBetweenSends() {
+        if (delayMs <= 0 || lastAttemptNanos == 0) {
+            return;
+        }
+        long remainingMs = delayMs - (System.nanoTime() - lastAttemptNanos) / 1_000_000;
+        if (remainingMs > 0) {
+            try {
+                Thread.sleep(remainingMs);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Envio interrompido durante a espera entre e-mails.", e);
+            }
         }
     }
 

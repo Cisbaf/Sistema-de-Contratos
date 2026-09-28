@@ -27,11 +27,18 @@ public record NotificationProperties(
      * @param from    remetente (ex.: naoresponda@cisbaf.org.br); em branco usa {@code spring.mail.username}
      * @param allowedRecipients lista de segurança para testes: quando preenchida, SÓ estes endereços
      *                          recebem (os demais são ignorados, sem log); vazia = sem restrição
+     * @param delayMs intervalo mínimo, em milissegundos, entre dois envios reais (evita rajadas que
+     *                fazem provedores marcarem o remetente como spam); 0 desliga
      */
     public record Mail(@DefaultValue("false") boolean enabled,
                        @DefaultValue("") String from,
-                       @DefaultValue List<String> allowedRecipients) {
+                       @DefaultValue List<String> allowedRecipients,
+                       @DefaultValue("3000") long delayMs) {
         public Mail {
+            if (delayMs < 0) {
+                throw new IllegalArgumentException(
+                        "notifications.mail.delay-ms não pode ser negativo (recebido: " + delayMs + ").");
+            }
             from = from == null ? "" : from.trim();
             allowedRecipients = allowedRecipients == null ? List.of() : allowedRecipients.stream()
                     .filter(Objects::nonNull)

@@ -54,6 +54,15 @@ class NotificationPropertiesTest {
     }
 
     @Test
+    void intervaloEntreEnviosPadraoEhTresSegundosEPodeMudar() {
+        assertThat(bind(Map.of()).mail().delayMs()).isEqualTo(3000);
+        assertThat(bind(Map.of("notifications.mail.delay-ms", "0")).mail().delayMs()).isZero();
+        assertThat(bind(Map.of("notifications.mail.delay-ms", "5000")).mail().delayMs()).isEqualTo(5000);
+        assertThatThrownBy(() -> bind(Map.of("notifications.mail.delay-ms", "-1")))
+                .isInstanceOf(BindException.class);
+    }
+
+    @Test
     void prazosInvalidosImpedemASubida() {
         assertThatThrownBy(() -> bind(Map.of(
                 "notifications.first-alert-months", "4",

@@ -15,7 +15,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class SmtpNotificationSenderTest {
 
     private NotificationProperties props(String from) {
-        return new NotificationProperties(6, 4, new NotificationProperties.Mail(true, from, java.util.List.of()));
+        return props(from, 0);
+    }
+
+    private NotificationProperties props(String from, long delayMs) {
+        return new NotificationProperties(6, 4, new NotificationProperties.Mail(true, from, java.util.List.of(), delayMs));
     }
 
     @Test
@@ -40,6 +44,31 @@ class SmtpNotificationSenderTest {
                 new JavaMailSenderImpl(), props(""), "naoresponda@cisbaf.org.br", "segredo");
 
         assertThat(sender.successStatus()).isEqualTo(NotificationStatus.SENT);
+    }
+
+    private long millisDeDoisEnvios(long delayMs) {
+        JavaMailSenderImpl mail = new JavaMailSenderImpl();
+        mail.setHost("localhost");
+        mail.setPort(1);
+        SmtpNotificationSender sender = new SmtpNotificationSender(
+                mail, props("naoresponda@cisbaf.org.br", delayMs), "", "segredo");
+        Recipient to = new Recipient(RecipientRole.FISCAL, "Ana", "ana@cisbaf.org.br");
+        NotificationMessage msg = new NotificationMessage("assunto", "corpo");
+
+        long start = System.nanoTime();
+        assertThatThrownBy(() -> sender.send(to, msg)).isInstanceOf(MailException.class);
+        assertThatThrownBy(() -> sender.send(to, msg)).isInstanceOf(MailException.class);
+        return (System.nanoTime() - start) / 1_000_000;
+    }
+
+    @Test
+    void esperaOIntervaloConfiguradoEntreDoisEnvios() {
+        assertThat(millisDeDoisEnvios(400)).isGreaterThanOrEqualTo(400);
+    }
+
+    @Test
+    void semIntervaloNaoEspera() {
+        assertThat(millisDeDoisEnvios(0)).isLessThan(400);
     }
 
     @Test
