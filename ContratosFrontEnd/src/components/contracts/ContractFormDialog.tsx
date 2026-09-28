@@ -149,7 +149,7 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
 
                 <DialogContent>
                     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(4, 1fr)" }, gap: 2, pt: 1 }}>
-                        <TextField label="Número do contrato" value={form.numberContract} onChange={e => field("numberContract", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
+                        <TextField label="Contrato" value={form.numberContract} onChange={e => field("numberContract", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
                         <TextField label="Número do processo" value={form.numberProcess} onChange={e => field("numberProcess", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
                         <TextField label="Objeto do contrato" value={form.object}
                             onChange={e => field("object", e.target.value)} required multiline minRows={3} sx={{ gridColumn: "1 / -1" }}
