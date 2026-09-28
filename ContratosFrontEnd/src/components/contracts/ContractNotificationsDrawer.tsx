@@ -7,9 +7,9 @@ import type { Contract, NotificationLogEntry } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   Alert, Box, Chip, Divider, Drawer, IconButton, Stack, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Tooltip, Typography,
+  TableContainer, TableHead, TablePagination, TableRow, Tooltip, Typography,
 } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const dateTime = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 
@@ -23,6 +23,8 @@ export default function ContractNotificationsDrawer({ open, contract, onClose }:
   const [items, setItems] = useState<NotificationLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
 
   const load = useCallback(async () => {
     if (contractId === null) return;
@@ -39,9 +41,13 @@ export default function ContractNotificationsDrawer({ open, contract, onClose }:
   // Recarrega toda vez que o painel abre (ou troca de contrato), como no painel financeiro.
   useEffect(() => {
     if (!open) return;
-    setLoading(true); setItems([]);
+    setLoading(true); setItems([]); setPage(0);
     void load();
   }, [open, load]);
+
+  const paged = useMemo(() =>
+    items.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [items, page, rowsPerPage]);
 
   if (!contract) return null;
 
@@ -76,7 +82,7 @@ export default function ContractNotificationsDrawer({ open, contract, onClose }:
                 </TableRow>
               </TableHead>
               <TableBody>
-                {items.map(item => {
+                {paged.map(item => {
                   const status = notificationStatusPresentation[item.status];
                   return (
                     <TableRow key={item.id} hover>
@@ -105,6 +111,19 @@ export default function ContractNotificationsDrawer({ open, contract, onClose }:
               </TableBody>
             </Table>
           </TableContainer>
+        }
+        {!loading && items.length > 0 &&
+          <TablePagination
+            component="div"
+            count={items.length}
+            page={page}
+            onPageChange={(_event, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={event => { setRowsPerPage(parseInt(event.target.value, 10)); setPage(0); }}
+            rowsPerPageOptions={[5, 10, 25]}
+            labelRowsPerPage="Linhas por página"
+            labelDisplayedRows={({ from: rowFrom, to: rowTo, count }) => `${rowFrom}–${rowTo} de ${count}`}
+          />
         }
       </Box>
     </Drawer>

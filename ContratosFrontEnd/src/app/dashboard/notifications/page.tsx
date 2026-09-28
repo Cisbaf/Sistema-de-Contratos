@@ -8,7 +8,7 @@ import type { NotificationLogEntry } from "@/types";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Box, Chip, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TextField, Tooltip, Typography,
+  TableHead, TablePagination, TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
@@ -21,6 +21,8 @@ export default function NotificationsPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [feedback, setFeedback] = useState({ message: "", error: false });
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     getJson<NotificationLogEntry[]>("/notificacoes")
@@ -42,6 +44,13 @@ export default function NotificationsPage() {
       return true;
     });
   }, [items, search, from, to]);
+
+  // Volta pra primeira página sempre que o filtro muda, senão a página atual pode ficar vazia.
+  useEffect(() => { setPage(0); }, [search, from, to]);
+
+  const paged = useMemo(() =>
+    filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
+    [filtered, page, rowsPerPage]);
 
   const total = items.length;
   const enviados = items.filter(item => item.status === "SENT").length;
@@ -85,7 +94,7 @@ export default function NotificationsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map(item => {
+              {paged.map(item => {
                 const status = notificationStatusPresentation[item.status];
                 return (
                   <TableRow key={item.id} hover>
@@ -116,6 +125,19 @@ export default function NotificationsPage() {
             </TableBody>
           </Table>
         </TableContainer>
+      }
+      {!loading && filtered.length > 0 &&
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={page}
+          onPageChange={(_event, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={event => { setRowsPerPage(parseInt(event.target.value, 10)); setPage(0); }}
+          rowsPerPageOptions={[10, 25, 50]}
+          labelRowsPerPage="Linhas por página"
+          labelDisplayedRows={({ from: rowFrom, to: rowTo, count }) => `${rowFrom}–${rowTo} de ${count}`}
+        />
       }
     </Paper>
     <Feedback message={feedback.message} error={feedback.error} onClose={() => setFeedback({ message: "", error: false })} />
