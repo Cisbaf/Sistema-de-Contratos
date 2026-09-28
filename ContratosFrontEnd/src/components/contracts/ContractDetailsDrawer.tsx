@@ -3,7 +3,8 @@
 import { formatCnpj } from "@/lib/formatters";
 import type { Contract } from "@/types";
 import {
-    AttachFileOutlined, DescriptionOutlined, EmailOutlined, FolderOutlined, PaymentsOutlined, PersonOutlineOutlined,
+    AttachFileOutlined, DescriptionOutlined, EmailOutlined, FolderOutlined, NotificationsOutlined,
+    PaymentsOutlined, PersonOutlineOutlined,
 } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -40,7 +41,7 @@ function Acao({ icon, titulo, disabledHint, disabled, onClick }: {
 }
 
 export default function ContractDetailsDrawer({
-    open, contract, status, onClose, onEmail, onOpinion, onMask, onDocuments, onAttachments, onFinancial,
+    open, contract, status, onClose, onEmail, onOpinion, onMask, onDocuments, onAttachments, onFinancial, onNotifications,
 }: {
     open: boolean;
     contract: Contract | null;
@@ -52,6 +53,7 @@ export default function ContractDetailsDrawer({
     onDocuments: (contract: Contract) => void;
     onAttachments: (contract: Contract) => void;
     onFinancial: (contract: Contract) => void;
+    onNotifications: (contract: Contract) => void;
 }) {
     if (!contract) return null;
 
@@ -148,6 +150,11 @@ export default function ContractDetailsDrawer({
                         icon={<AttachFileOutlined />}
                         titulo="Anexos"
                         onClick={() => onAttachments(contract)}
+                    />
+                    <Acao
+                        icon={<NotificationsOutlined />}
+                        titulo="Notificações"
+                        onClick={() => onNotifications(contract)}
                     />
                 </List>
             </Box>

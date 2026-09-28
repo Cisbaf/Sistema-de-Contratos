@@ -115,3 +115,25 @@ export interface LancamentoHistorico {
   alteradoEm: string;
   alteradoPor: User | null;
 }
+
+export type NotificationAlertType = "SIX_MONTHS" | "FOUR_MONTHS";
+export type NotificationChannel = "EMAIL";
+export type RecipientRole = "FISCAL" | "INTERNAL_CONTROL";
+export type NotificationStatus = "SENT" | "FAILED" | "SIMULATED";
+
+export interface NotificationLogEntry {
+  id: number;
+  contractId: number;
+  contractNumber: string;
+  seiProcessNumber: string;
+  fiscais: string[];
+  alertType: NotificationAlertType;
+  cycleEndDate: string;
+  channel: NotificationChannel;
+  recipientRole: RecipientRole;
+  recipientName: string | null;
+  recipientAddress: string;
+  status: NotificationStatus;
+  errorMessage: string | null;
+  attemptedAt: string;
+}

@@ -7,6 +7,7 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
+import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import { AppBar, Avatar, Box, CircularProgress, Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Stack, Toolbar, Tooltip, Typography } from "@mui/material";
 import Link from "next/link";
@@ -22,6 +23,7 @@ const items = [
   { href: "/dashboard/templates", label: "Templates", icon: <ArticleOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/users", label: "Usuários", icon: <PeopleAltOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/sectors", label: "Setores", icon: <ApartmentOutlinedIcon />, hideFromFiscal: true },
+  { href: "/dashboard/notifications", label: "Notificações", icon: <NotificationsOutlinedIcon />, hideFromFiscal: true },
 ];
 
 export default function DashboardShell({ children }: { children: ReactNode }) {
