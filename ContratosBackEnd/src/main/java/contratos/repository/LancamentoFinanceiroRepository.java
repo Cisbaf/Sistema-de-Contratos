@@ -15,4 +15,5 @@ public interface LancamentoFinanceiroRepository extends JpaRepository<Lancamento
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @org.springframework.data.jpa.repository.Query("select l from LancamentoFinanceiro l where l.id = :id")
     java.util.Optional<LancamentoFinanceiro> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
+    void deleteByContrato_Id(Long contratoId);
 }

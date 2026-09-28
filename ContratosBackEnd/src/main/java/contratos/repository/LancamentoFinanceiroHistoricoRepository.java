@@ -9,4 +9,5 @@ public interface LancamentoFinanceiroHistoricoRepository extends JpaRepository<L
 
     List<LancamentoFinanceiroHistorico> findByContrato_IdOrderByAlteradoEmDesc(Long contratoId);
     boolean existsByLancamento_Id(Long lancamentoId);
+    void deleteByContrato_Id(Long contratoId);
 }

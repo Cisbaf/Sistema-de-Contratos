@@ -30,6 +30,8 @@ public class ContractService {
     private final GeneratedDocumentRepository generatedDocumentRepository;
     private final ContractAttachmentRepository attachmentRepository;
     private final NotificationLogRepository notificationLogRepository;
+    private final LancamentoFinanceiroRepository financeiroRepository;
+    private final LancamentoFinanceiroHistoricoRepository financeiroHistoricoRepository;
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
@@ -99,6 +101,8 @@ public class ContractService {
         generatedDocumentRepository.deleteByContract_Id(contractId);
         attachmentRepository.deleteByContract_Id(contractId);
         notificationLogRepository.deleteByContract_Id(contractId);
+        financeiroHistoricoRepository.deleteByContrato_Id(contractId);
+        financeiroRepository.deleteByContrato_Id(contractId);
         contracts.delete(contract);
     }
 
