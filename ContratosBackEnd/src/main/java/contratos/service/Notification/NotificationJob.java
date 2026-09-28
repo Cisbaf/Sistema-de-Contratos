@@ -1,4 +1,4 @@
-package contratos.service;
+package contratos.service.Notification;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

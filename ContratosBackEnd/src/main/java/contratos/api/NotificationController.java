@@ -1,7 +1,7 @@
 package contratos.api;
 
 import contratos.api.dto.Notificacao.NotificationLogResponse;
-import contratos.service.NotificationQueryService;
+import contratos.service.Notification.NotificationQueryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

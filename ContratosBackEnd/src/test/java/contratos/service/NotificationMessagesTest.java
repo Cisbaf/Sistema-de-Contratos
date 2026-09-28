@@ -1,11 +1,13 @@
 package contratos.service;
 
+import contratos.api.dto.Notificacao.NotificationMessage;
 import contratos.api.dto.Notificacao.Recipient;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.enums.NotificationAlertType;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.domain.enums.RecipientRole;
+import contratos.service.Notification.NotificationMessages;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

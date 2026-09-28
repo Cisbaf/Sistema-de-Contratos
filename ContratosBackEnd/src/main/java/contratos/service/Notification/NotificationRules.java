@@ -1,4 +1,4 @@
-package contratos.service;
+package contratos.service.Notification;
 
 import contratos.domain.enums.NotificationAlertType;
 

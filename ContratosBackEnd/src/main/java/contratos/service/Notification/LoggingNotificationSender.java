@@ -1,5 +1,6 @@
-package contratos.service;
+package contratos.service.Notification;
 
+import contratos.api.dto.Notificacao.NotificationMessage;
 import contratos.api.dto.Notificacao.Recipient;
 import contratos.domain.enums.NotificationStatus;
 import lombok.extern.slf4j.Slf4j;

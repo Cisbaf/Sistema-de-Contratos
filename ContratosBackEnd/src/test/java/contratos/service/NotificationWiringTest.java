@@ -1,5 +1,8 @@
 package contratos.service;
 
+import contratos.service.Notification.LoggingNotificationSender;
+import contratos.service.Notification.NotificationSender;
+import contratos.service.Notification.SmtpNotificationSender;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +18,8 @@ class NotificationWiringTest {
     @SpringBootTest(properties = "spring.datasource.url=jdbc:h2:mem:wiring_off;MODE=MySQL;DB_CLOSE_DELAY=-1")
     @ActiveProfiles("test")
     class Desligado {
-        @Autowired NotificationSender sender;
+        @Autowired
+        NotificationSender sender;
 
         @Test
         void padraoEhSimulacao() {

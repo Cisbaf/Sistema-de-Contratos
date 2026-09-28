@@ -1,6 +1,7 @@
 package contratos.service;
 
 import contratos.domain.enums.NotificationAlertType;
+import contratos.service.Notification.NotificationRules;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;

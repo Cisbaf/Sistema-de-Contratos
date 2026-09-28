@@ -1,9 +1,11 @@
 package contratos.service;
 
+import contratos.api.dto.Notificacao.NotificationMessage;
 import contratos.api.dto.Notificacao.Recipient;
 import contratos.config.NotificationProperties;
 import contratos.domain.enums.NotificationStatus;
 import contratos.domain.enums.RecipientRole;
+import contratos.service.Notification.SmtpNotificationSender;
 import org.junit.jupiter.api.Test;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSenderImpl;

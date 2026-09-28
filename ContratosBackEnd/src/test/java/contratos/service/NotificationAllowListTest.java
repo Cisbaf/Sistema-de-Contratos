@@ -8,6 +8,7 @@ import contratos.repository.ContractRepository;
 import contratos.repository.NotificationLogRepository;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
+import contratos.service.Notification.NotificationDispatcher;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,7 +31,8 @@ class NotificationAllowListTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 25);
 
-    @Autowired NotificationDispatcher dispatcher;
+    @Autowired
+    NotificationDispatcher dispatcher;
     @Autowired NotificationDispatcherTest.FakeSender sender;
     @Autowired NotificationLogRepository logs;
     @Autowired ContractRepository contracts;

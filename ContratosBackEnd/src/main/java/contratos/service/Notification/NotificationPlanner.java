@@ -1,4 +1,4 @@
-package contratos.service;
+package contratos.service.Notification;
 
 import contratos.api.dto.Notificacao.PlannedNotification;
 import contratos.api.dto.Notificacao.Recipient;

@@ -1,5 +1,6 @@
 package contratos.service;
 
+import contratos.api.dto.Notificacao.NotificationMessage;
 import contratos.api.dto.Notificacao.Recipient;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
@@ -12,6 +13,8 @@ import contratos.repository.ContractRepository;
 import contratos.repository.NotificationLogRepository;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
+import contratos.service.Notification.NotificationDispatcher;
+import contratos.service.Notification.NotificationSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +69,8 @@ class NotificationDispatcherTest {
 
     private static final LocalDate TODAY = LocalDate.of(2026, 9, 25);
 
-    @Autowired NotificationDispatcher dispatcher;
+    @Autowired
+    NotificationDispatcher dispatcher;
     @Autowired FakeSender sender;
     @Autowired NotificationLogRepository logs;
     @Autowired ContractRepository contracts;

@@ -14,6 +14,7 @@ import contratos.repository.ContractRepository;
 import contratos.repository.NotificationLogRepository;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
+import contratos.service.Notification.NotificationQueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +33,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 class NotificationQueryServiceTest {
 
-    @Autowired NotificationQueryService service;
+    @Autowired
+    NotificationQueryService service;
     @Autowired NotificationLogRepository logs;
     @Autowired ContractRepository contracts;
     @Autowired UserRepository users;
