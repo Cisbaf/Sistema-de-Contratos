@@ -5,6 +5,7 @@ import contratos.api.dto.Contract.ContractResponse;
 import contratos.api.dto.InterestEmail.InterestEmailConfirmResponse;
 import contratos.api.dto.InterestEmail.InterestEmailPreviewResponse;
 import contratos.api.dto.TechnicalOpinion.TextPayload;
+import contratos.domain.AppUser;
 import contratos.service.ContractService;
 import contratos.service.InterestEmailConfirmationService;
 import contratos.service.SupplierMaskService;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -47,8 +49,9 @@ public class ContractController {
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
-    public ResponseEntity<ContractResponse> create(@RequestBody @Valid ContractRequest request) {
-        return ResponseEntity.ok(service.create(request));
+    public ResponseEntity<ContractResponse> create(@RequestBody @Valid ContractRequest request, Authentication authentication) {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+        return ResponseEntity.ok(service.create(request, actor));
     }
 
     @PreAuthorize("@contractAuthorization.isAssignedFiscal(#id, authentication)")
@@ -67,14 +70,17 @@ public class ContractController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
-    public ResponseEntity<ContractResponse> update(@PathVariable Long id, @RequestBody @Valid ContractRequest request) {
-        return ResponseEntity.ok(service.update(id, request));
+    public ResponseEntity<ContractResponse> update(@PathVariable Long id, @RequestBody @Valid ContractRequest request, Authentication authentication) {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+
+        return ResponseEntity.ok(service.update(id, request, actor));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication authentication) {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+        service.delete(id, actor);
         return ResponseEntity.noContent().build();
     }
 

@@ -1,23 +1,24 @@
 package contratos.service;
 
+import contratos.api.dto.Contract.ContractRequest;
+import contratos.api.dto.Contract.ContractResponse;
+import contratos.domain.AppUser;
+import contratos.domain.Contract;
+import contratos.domain.enums.AuditAction;
+import contratos.domain.enums.AuditEntityType;
+import contratos.domain.enums.PerfilUsuario;
+import contratos.exception.ConflictException;
+import contratos.repository.*;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import contratos.repository.*;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import contratos.api.dto.Contract.ContractRequest;
-import contratos.api.dto.Contract.ContractResponse;
-import contratos.domain.AppUser;
-import contratos.domain.Contract;
-import contratos.domain.enums.PerfilUsuario;
-import contratos.exception.ConflictException;
-import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Service
@@ -32,6 +33,7 @@ public class ContractService {
     private final NotificationLogRepository notificationLogRepository;
     private final LancamentoFinanceiroRepository financeiroRepository;
     private final LancamentoFinanceiroHistoricoRepository financeiroHistoricoRepository;
+    private final AuditService auditService;
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
@@ -49,7 +51,7 @@ public class ContractService {
     }
 
     @Transactional
-    public ContractResponse create(ContractRequest request) {
+    public ContractResponse create(ContractRequest request, AppUser appUser) {
         validateDates(request);
         if (contracts.existsByNumberContractIgnoreCase(request.numberContract().trim())) {
             throw new ConflictException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
@@ -63,24 +65,46 @@ public class ContractService {
                 LocalDate.now()
         );
 
+        auditService.record(appUser, AuditAction.CREATE, AuditEntityType.CONTRACT, savedContract.getId(),
+                savedContract.getId(), "Contrato " + savedContract.getNumberContract() + " criado", null);
+
         return EntityMapper.contract(savedContract, List.of());
     }
 
     @Transactional
-    public ContractResponse update(Long id, ContractRequest request) {
+    public ContractResponse update(Long id, ContractRequest request, AppUser appUser) {
         validateDates(request);
         Contract contract = getContract(id);
         if (contracts.existsByNumberContractIgnoreCaseAndIdNot(request.numberContract().trim(), contract.getId())) {
             throw new ConflictException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
         }
+
+        AuditChangeLog changes = new AuditChangeLog()
+                .field("Valor global", contract.getValueGlobal(), request.valueGlobal())
+                .field("Valor mensal", contract.getValueMensal(), request.valueMensal())
+                .field("Início da vigência", contract.getStartDate(), request.startDate())
+                .field("Término da vigência", contract.getEndDate(), request.endDate())
+                .field("Fiscais", fiscalNames(contract.getFiscais()), fiscalNames(request));
+
+
         apply(contract, request);
 
         contractStatusService.updateByDeadline(
                 contract,
                 LocalDate.now()
         );
+        auditService.record(appUser, AuditAction.UPDATE, AuditEntityType.CONTRACT, contract.getId(),
+                contract.getId(), "Contrato " + contract.getNumberContract() + " atualizado", changes.build());
 
         return EntityMapper.contract(contract, getConfirmadosId(id));
+    }
+
+    private String fiscalNames(ContractRequest request) {
+        return fiscalNames(new LinkedHashSet<>(users.findAllById(request.fiscalIds())));
+    }
+
+    private String fiscalNames(Set<AppUser> fiscais) {
+        return fiscais.stream().map(AppUser::getName).sorted().collect(Collectors.joining(", "));
     }
 
     /**
@@ -91,9 +115,12 @@ public class ContractService {
      * status ou gerado algum documento.
      */
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, AppUser appUser) {
         Contract contract = getContract(id);
         Long contractId = contract.getId();
+
+        auditService.record(appUser, AuditAction.DELETE, AuditEntityType.CONTRACT, contract.getId(),
+                contract.getId(), "Contrato " + contract.getNumberContract() + " excluido", null);
 
         contractStatusService.deleteHistoryOf(contractId);
         interestRepository.deleteByContract_Id(contractId);
@@ -106,9 +133,9 @@ public class ContractService {
         contracts.delete(contract);
     }
 
-    private List<Long> getConfirmadosId(Long contractId){
+    private List<Long> getConfirmadosId(Long contractId) {
         return interestRepository.findByContract_Id(contractId)
-        .stream().map(confirmation -> confirmation.getFiscal().getId()).toList();
+                .stream().map(confirmation -> confirmation.getFiscal().getId()).toList();
     }
 
     private Contract getContract(Long id) {

@@ -5,6 +5,8 @@ import contratos.api.dto.DocumentTemplate.DocumentTemplateResponse;
 import contratos.api.dto.DocumentTemplate.DocumentTemplateUpdateRequest;
 import contratos.domain.AppUser;
 import contratos.domain.DocumentTemplate;
+import contratos.domain.enums.AuditAction;
+import contratos.domain.enums.AuditEntityType;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
@@ -31,6 +33,8 @@ public class DocumentTemplateService {
     private final DocumentTemplateRepository docRepository;
     private final UserRepository userRepository;
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("\\{\\{(\\w+)}}");
+    private final AuditService auditService;
+
 
     @Transactional(readOnly = true)
     public List<DocumentTemplateResponse> findAll(String username) {
@@ -59,8 +63,12 @@ public class DocumentTemplateService {
         }
 
         var newTemplate = new DocumentTemplate(request.templateType(), request.content(), LocalDateTime.now(ZoneId.of("America/Sao_Paulo")), user);
+        var created = docRepository.save(newTemplate);
 
-        return toResponse(docRepository.save(newTemplate));
+        auditService.record(user, AuditAction.CREATE, AuditEntityType.TEMPLATE, created.getId(),
+                null, "Template " + created.getTemplateType() + " criado", null);
+
+        return toResponse(created);
     }
 
     @Transactional
@@ -76,6 +84,9 @@ public class DocumentTemplateService {
 
         oldTemplate.updateContent(request.content(), LocalDateTime.now(ZoneId.of("America/Sao_Paulo")), user);
 
+        auditService.record(user, AuditAction.UPDATE, AuditEntityType.TEMPLATE, oldTemplate.getId(),
+                null, "Template " + oldTemplate.getTemplateType() + " atualizado", null);
+
         return toResponse(oldTemplate);
     }
 
@@ -90,19 +101,19 @@ public class DocumentTemplateService {
         );
     }
 
-    private void validateVariables(String content, DocumentTemplateType templateType){
+    private void validateVariables(String content, DocumentTemplateType templateType) {
 
         Set<String> permitidas = allowedVariables(templateType);
         Matcher matcher = PLACEHOLDER_PATTERN.matcher(content);
         Set<String> invalidas = new HashSet<>();
 
-        while(matcher.find()){
+        while (matcher.find()) {
             var variavel = matcher.group(1);
-            if (!permitidas.contains(variavel)){
+            if (!permitidas.contains(variavel)) {
                 invalidas.add(variavel);
             }
         }
-        if (!invalidas.isEmpty()){
+        if (!invalidas.isEmpty()) {
             throw new IllegalArgumentException("Variáveis não permitidas para este tipo de template: " + String.join(", ", invalidas));
         }
     }

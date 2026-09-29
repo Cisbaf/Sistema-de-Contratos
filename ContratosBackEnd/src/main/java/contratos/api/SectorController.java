@@ -2,11 +2,13 @@ package contratos.api;
 
 import contratos.api.dto.Sector.SectorRequest;
 import contratos.api.dto.Sector.SectorResponse;
+import contratos.domain.AppUser;
 import contratos.service.SectorService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -28,20 +30,26 @@ public class SectorController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SectorResponse> create(@RequestBody @Valid SectorRequest request) {
-        return ResponseEntity.ok(service.create(request));
+    public ResponseEntity<SectorResponse> create(@RequestBody @Valid SectorRequest request, Authentication authentication) {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+
+        return ResponseEntity.ok(service.create(request, actor));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SectorResponse> update(@PathVariable Long id, @RequestBody @Valid SectorRequest request) {
-        return ResponseEntity.ok(service.update(id, request));
+    public ResponseEntity<SectorResponse> update(@PathVariable Long id, @RequestBody @Valid SectorRequest request, Authentication authentication) {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+
+        return ResponseEntity.ok(service.update(id, request, actor));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication authentication) {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+
+        service.delete(id, actor);
         return ResponseEntity.noContent().build();
     }
 }

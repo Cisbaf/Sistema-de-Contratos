@@ -3,13 +3,16 @@ package contratos.service;
 import contratos.api.dto.User.UserRequest;
 import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
-import contratos.domain.enums.PerfilUsuario;
 import contratos.domain.Sector;
+import contratos.domain.enums.AuditAction;
+import contratos.domain.enums.AuditEntityType;
+import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,18 +21,14 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private final UserRepository users;
     private final SectorRepository sectors;
     private final ContractRepository contracts;
     private final PasswordEncoder passwordEncoder;
+    private final AuditService auditService;
 
-    public UserService(UserRepository users, SectorRepository sectors, ContractRepository contracts, PasswordEncoder passwordEncoder) {
-        this.users = users;
-        this.sectors = sectors;
-        this.contracts = contracts;
-        this.passwordEncoder = passwordEncoder;
-    }
 
     @Transactional(readOnly = true)
     public List<UserSummary> findAll() {
@@ -37,7 +36,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserSummary create(UserRequest request) {
+    public UserSummary create(UserRequest request, AppUser appUser) {
         if (request.password() == null || request.password().isBlank()) {
             throw new IllegalArgumentException("A senha é obrigatória ao criar um fiscal");
         }
@@ -46,11 +45,16 @@ public class UserService {
         PerfilUsuario perfil = resolvePerfil(request);
         AppUser user = new AppUser(request.email(), passwordEncoder.encode(request.password()), request.name().trim(),
                 request.email().trim().toLowerCase(), request.cellPhone(), sector, perfil);
-        return EntityMapper.user(users.save(user));
+
+        var newUser = users.save(user);
+
+        auditService.record(appUser, AuditAction.CREATE, AuditEntityType.USER, newUser.getId(),
+                null, "Usuário " + newUser.getName() + " criado", null);
+        return EntityMapper.user(newUser);
     }
 
     @Transactional
-    public UserSummary update(Long id, UserRequest request) {
+    public UserSummary update(Long id, UserRequest request, AppUser appUser) {
         AppUser user = getUser(id);
         ensureUnique(request.email(), id);
         PerfilUsuario perfil = resolvePerfil(request);
@@ -59,20 +63,31 @@ public class UserService {
             throw new ConflictException("Fiscais com contratos ativos não podem mudar de perfil");
         }
 
+        AuditChangeLog changes = new AuditChangeLog()
+                .field("Nome", user.getName(), request.name().trim())
+                .field("E-mail", user.getEmail(), request.email().trim().toLowerCase())
+                .field("Celular", user.getCellPhone(), request.cellPhone())
+                .field("Setor", user.getSector().getName(), getSector(request.sectorId()).getName())
+                .field("Perfil", user.getPerfil(), perfil);
+
         user.update(request.email().trim().toLowerCase(), request.name().trim(), request.email().trim().toLowerCase(),
                 request.cellPhone(), getSector(request.sectorId()), perfil);
         if (request.password() != null && !request.password().isBlank()) {
             user.changePassword(passwordEncoder.encode(request.password()));
         }
+        auditService.record(appUser, AuditAction.UPDATE, AuditEntityType.USER, user.getId(),
+                null, "Usuário " + user.getName() + " atualizado", changes.build());
         return EntityMapper.user(user);
     }
 
     @Transactional
-    public void delete(Long id) {
+    public void delete(Long id, AppUser appUser) {
         AppUser user = getUser(id);
         if (contracts.countByFiscaisId(id) > 0) {
             throw new ConflictException("O fiscal está vinculado a contratos");
         }
+        auditService.record(appUser, AuditAction.DELETE, AuditEntityType.USER, user.getId(),
+                null, "Usuário " + user.getName() + " apagado", null);
         users.delete(user);
     }
 
