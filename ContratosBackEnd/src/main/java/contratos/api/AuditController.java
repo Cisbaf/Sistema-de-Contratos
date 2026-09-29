@@ -17,11 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 
-/**
- * Consulta da auditoria geral (M6-30). Só ADMIN/CONTROLE_INTERNO (decisão de
- * 29/09/2026); fiscal nunca. Paginação no servidor porque o volume aqui cresce
- * sem parar, diferente das listas pequenas do resto do sistema.
- */
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/auditoria")
@@ -30,13 +26,7 @@ public class AuditController {
 
     private final AuditLogRepository repository;
 
-    /**
-     * dataInicio/dataFim são dias inteiros (não hora): dataFim inclui o dia
-     * inteiro porque a query do repository usa "< toDate" (limite exclusivo),
-     * então aqui viramos o fim do intervalo para o início do dia seguinte.
-     * page/size em vez de Pageable: a ordenação já é fixa na query do
-     * AuditLogRepository (occurredAt desc, id desc) e não deve vir do cliente.
-     */
+
     @GetMapping
     public ResponseEntity<Page<AuditLogResponse>> search(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
