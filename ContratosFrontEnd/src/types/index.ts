@@ -154,6 +154,11 @@ export interface AuditLogEntry {
   details: string | null;
 }
 
+export interface NotificationSettings {
+  firstAlertMonths: number;
+  secondAlertMonths: number;
+}
+
 // Forma de Page<T> do Spring Data: só os campos que a tela usa (a resposta real
 // do backend tem mais metadados de paginação, sem uso aqui).
 export interface Page<T> {

@@ -10,6 +10,7 @@ import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsOutlinedIcon from "@mui/icons-material/NotificationsOutlined";
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { AppBar, Avatar, Box, CircularProgress, Divider, Drawer, IconButton, List, ListItemButton, ListItemIcon, ListItemText, Stack, Toolbar, Tooltip, Typography } from "@mui/material";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ const items = [
   { href: "/dashboard/users", label: "Usuários", icon: <PeopleAltOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/sectors", label: "Setores", icon: <ApartmentOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/notifications", label: "Notificações", icon: <NotificationsOutlinedIcon />, hideFromFiscal: true },
+  { href: "/dashboard/parametros", label: "Parâmetros", icon: <TuneOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/auditoria", label: "Auditoria", icon: <HistoryOutlinedIcon />, hideFromFiscal: true },
 ];
 
