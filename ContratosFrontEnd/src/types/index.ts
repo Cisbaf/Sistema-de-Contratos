@@ -137,3 +137,29 @@ export interface NotificationLogEntry {
   errorMessage: string | null;
   attemptedAt: string;
 }
+
+export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "GENERATE_DOCUMENT" | "UPLOAD_ATTACHMENT" | "REMOVE_ATTACHMENT";
+export type AuditEntityType = "CONTRACT" | "USER" | "SECTOR" | "TEMPLATE" | "LANCAMENTO" | "ATTACHMENT" | "DOCUMENT" | "SETTING";
+
+export interface AuditLogEntry {
+  id: number;
+  occurredAt: string;
+  actorName: string | null;
+  actorEmail: string | null;
+  action: AuditAction;
+  entityType: AuditEntityType;
+  entityId: number | null;
+  contractId: number | null;
+  summary: string;
+  details: string | null;
+}
+
+// Forma de Page<T> do Spring Data: só os campos que a tela usa (a resposta real
+// do backend tem mais metadados de paginação, sem uso aqui).
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
