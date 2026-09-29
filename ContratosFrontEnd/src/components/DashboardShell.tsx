@@ -49,11 +49,15 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     items => !(auth?.perfil === "FISCAL" && items.hideFromFiscal),
   )
 
+  const hasSidebar = visibleItems.length > 1;
+
   const profileLabels = {
     ADMIN: "Administrador",
     CONTROLE_INTERNO: "Controle Interno",
     FISCAL: "Fiscal",
   } as const;
+
+  const perfilLabel = auth?.perfil ? profileLabels[auth.perfil] : auth?.admin ? "Administrador" : "Usuário";
 
   const drawer = <Stack height="100%">
     <Toolbar sx={{ px: 2.5 }}>
@@ -79,11 +83,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
       <Avatar sx={{ width: 38, height: 38 }}>{auth?.name?.charAt(0) ?? "U"}</Avatar>
       <Box minWidth={0} flex={1}>
         <Typography variant="body2" fontWeight={700} noWrap>{auth?.name ?? "Usuário"}</Typography>
-        <Typography variant="caption" color="text.secondary">{auth?.perfil
-          ? profileLabels[auth.perfil]
-          : auth?.admin
-            ? "Administrador"
-            : "Usuário"}</Typography>
+        <Typography variant="caption" color="text.secondary">{perfilLabel}</Typography>
       </Box>
       <Tooltip title="Sair">
         <IconButton onClick={logout} size="small">
@@ -93,7 +93,33 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     </Stack>
   </Stack>;
 
+  const topBar = <AppBar position="fixed" color="inherit" elevation={0} sx={{ borderBottom: "1px solid #E4EAF2" }}>
+    <Toolbar sx={{ justifyContent: "space-between" }}>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Avatar variant="rounded" sx={{ bgcolor: "secondary.main", color: "#17233C", fontWeight: 900 }}>C</Avatar>
+        <Typography fontWeight={800}>Controle de Contratos</Typography>
+      </Stack>
+      <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Avatar sx={{ width: 38, height: 38 }}>{auth?.name?.charAt(0) ?? "U"}</Avatar>
+        <Box minWidth={0}>
+          <Typography variant="body2" fontWeight={700} noWrap>{auth?.name ?? "Usuário"}</Typography>
+          <Typography variant="caption" color="text.secondary">{perfilLabel}</Typography>
+        </Box>
+        <Tooltip title="Sair">
+          <IconButton onClick={logout} size="small">
+            <LogoutOutlinedIcon />
+          </IconButton>
+        </Tooltip>
+      </Stack>
+    </Toolbar>
+  </AppBar>;
+
   if (!auth) return <Box minHeight="100vh" display="grid" sx={{ placeItems: "center" }}><CircularProgress /></Box>;
+
+  if (!hasSidebar) return <AuthContext.Provider value={auth}><Box sx={{ minHeight: "100vh" }}>
+    {topBar}
+    <Box component="main" sx={{ pt: 10, px: { xs: 2, md: 4 }, pb: { xs: 2, md: 4 } }}>{children}</Box>
+  </Box></AuthContext.Provider>;
 
   return <AuthContext.Provider value={auth}><Box sx={{ display: "flex", minHeight: "100vh" }}>
     <AppBar position="fixed" color="inherit" elevation={0} sx={{ display: { md: "none" }, borderBottom: "1px solid #E4EAF2" }}>
