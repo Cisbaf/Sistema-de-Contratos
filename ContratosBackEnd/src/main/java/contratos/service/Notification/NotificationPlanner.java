@@ -2,7 +2,6 @@ package contratos.service.Notification;
 
 import contratos.api.dto.Notificacao.PlannedNotification;
 import contratos.api.dto.Notificacao.Recipient;
-import contratos.config.NotificationProperties;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.enums.NotificationAlertType;
@@ -37,24 +36,28 @@ public class NotificationPlanner {
     private final ContractRepository contracts;
     private final UserRepository users;
     private final NotificationLogRepository logs;
-    private final NotificationProperties properties;
+    private final NotificationSettingsService settingsService;
 
     public NotificationPlanner(ContractRepository contracts,
                                UserRepository users,
                                NotificationLogRepository logs,
-                               NotificationProperties properties) {
+                               NotificationSettingsService settingsService) {
         this.contracts = contracts;
         this.users = users;
         this.logs = logs;
-        this.properties = properties;
+        this.settingsService = settingsService;
     }
 
-    /** Todos os contratos com algo a enviar em {@code today}, independentemente do status do processo. */
+    /**
+     * Todos os contratos com algo a enviar em {@code today}, independentemente do status do processo.
+     * Os prazos de alerta são lidos do banco (M6-40) uma vez por chamada, não por contrato.
+     */
     @Transactional(readOnly = true)
     public List<PlannedNotification> planAll(LocalDate today) {
         Objects.requireNonNull(today, "A data de referência é obrigatória.");
+        var settings = settingsService.current();
         return contracts.findAllByEndDateGreaterThanEqual(today).stream()
-                .map(contract -> plan(contract, today))
+                .map(contract -> plan(contract, today, settings.getFirstAlertMonths(), settings.getSecondAlertMonths()))
                 .flatMap(Optional::stream)
                 .toList();
     }
@@ -62,15 +65,22 @@ public class NotificationPlanner {
     /**
      * O contrato precisa chegar com {@code fiscais} carregados (ou estar numa transação aberta).
      * Devolve vazio se não há alerta devido ou se todos os destinatários já foram avisados neste ciclo.
+     * Consulta os prazos atuais no banco (M6-40); para planejar vários contratos de uma vez, prefira
+     * {@link #planAll(LocalDate)}, que consulta uma única vez.
      */
     @Transactional(readOnly = true)
     public Optional<PlannedNotification> plan(Contract contract, LocalDate today) {
+        var settings = settingsService.current();
+        return plan(contract, today, settings.getFirstAlertMonths(), settings.getSecondAlertMonths());
+    }
+
+    private Optional<PlannedNotification> plan(Contract contract, LocalDate today,
+                                               int firstAlertMonths, int secondAlertMonths) {
         Objects.requireNonNull(contract, "O contrato é obrigatório.");
         Objects.requireNonNull(today, "A data de referência é obrigatória.");
 
         Optional<NotificationAlertType> alert =
-                NotificationRules.resolveAlert(contract.getEndDate(), today,
-                        properties.firstAlertMonths(), properties.secondAlertMonths());
+                NotificationRules.resolveAlert(contract.getEndDate(), today, firstAlertMonths, secondAlertMonths);
         if (alert.isEmpty()) {
             return Optional.empty();
         }
