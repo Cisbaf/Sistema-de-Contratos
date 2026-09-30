@@ -1,5 +1,12 @@
 package contratos.service;
 
+import java.time.LocalDate;
+import java.util.List;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import contratos.api.dto.User.UserRequest;
 import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
@@ -13,13 +20,6 @@ import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
