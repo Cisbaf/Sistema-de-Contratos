@@ -7,7 +7,6 @@ public record UserSummary(
         String email,
         String cellPhone,
         SectorSummary sector,
-        boolean admin,
         String perfil
 ) {
     public record SectorSummary(Long id, String name) {}

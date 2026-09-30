@@ -15,7 +15,7 @@ public final class EntityMapper {
         UserSummary.SectorSummary sector = value.getSector() == null ? null
                 : new UserSummary.SectorSummary(value.getSector().getId(), value.getSector().getName());
         return new UserSummary(value.getId(), value.getName(),value.getUsername(), value.getEmail(), value.getCellPhone(), sector,
-                value.isAdmin(), value.getPerfil().name());
+                 value.getPerfil().name());
     }
 
     public static ContractResponse contract(Contract value, List<Long> confirmados) {

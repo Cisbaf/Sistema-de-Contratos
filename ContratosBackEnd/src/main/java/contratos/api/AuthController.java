@@ -4,6 +4,7 @@ import contratos.api.dto.LoginRequest;
 import contratos.api.dto.RegisterRequest;
 import contratos.domain.AppUser;
 import contratos.domain.Sector;
+import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
@@ -61,7 +62,7 @@ public class AuthController {
         String email = request.email().trim().toLowerCase();
         if (users.existsByUsername(email)) throw new ConflictException("Usuário já cadastrado");
         Sector sector = sectors.findAll().stream().findFirst().orElseGet(() -> sectors.save(new Sector("Geral")));
-        users.save(new AppUser(email, passwordEncoder.encode(request.password()), request.name().trim(), email, null, sector, false));
+        users.save(new AppUser(email, passwordEncoder.encode(request.password()), request.name().trim(), email, null, sector, PerfilUsuario.FISCAL));
         return ResponseEntity.ok(Map.of("message", "User registered successfully", "username", email));
     }
 

@@ -40,18 +40,11 @@ public class AppUser implements UserDetails {
     @JoinColumn(name = "sector_id")
     private Sector sector;
 
-    @Setter(AccessLevel.NONE)
-    @Column(nullable = false)
-    private boolean admin;
-
     @Enumerated(EnumType.STRING)
     @Setter(AccessLevel.NONE)
     @Column(length = 30)
     private PerfilUsuario perfil;
 
-    public AppUser(String username, String password, String name, String email, String cellPhone, Sector sector, boolean admin) {
-        this(username, password, name, email, cellPhone, sector, admin ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL);
-    }
 
     public AppUser(String username, String password, String name, String email, String cellPhone, Sector sector,
                    PerfilUsuario perfil) {
@@ -62,24 +55,14 @@ public class AppUser implements UserDetails {
         this.cellPhone = cellPhone;
         this.sector = sector;
         this.perfil = perfil;
-        this.admin = perfil == PerfilUsuario.ADMIN;
     }
 
     public void changePassword(String encodedPassword) {
         this.password = encodedPassword;
     }
-    public void rename(String name) {
-        this.name = name;
-    }
 
     public boolean isAdmin() {
         return getPerfil() == PerfilUsuario.ADMIN;
-    }
-
-    public PerfilUsuario getPerfil() {
-        return perfil != null
-                ? perfil
-                : (admin ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL);
     }
 
     public void update(String username, String name, String email, String cellPhone, Sector sector, boolean admin) {
@@ -94,7 +77,6 @@ public class AppUser implements UserDetails {
         this.cellPhone = cellPhone;
         this.sector = sector;
         this.perfil = perfil;
-        this.admin = perfil == PerfilUsuario.ADMIN;
     }
 
 

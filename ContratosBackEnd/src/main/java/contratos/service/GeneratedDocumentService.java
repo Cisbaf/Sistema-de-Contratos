@@ -84,7 +84,6 @@ public class GeneratedDocumentService {
                         user.getEmail(),
                         user.getCellPhone(),
                         new UserSummary.SectorSummary(sector.getId(), sector.getName()),
-                        user.isAdmin(),
                         user.getPerfil().name()),
                 document.getGeneratedAt());
     }

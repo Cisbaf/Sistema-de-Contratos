@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -107,7 +108,7 @@ public class UserService {
 
     private PerfilUsuario resolvePerfil(UserRequest request) {
         if (request.perfil() == null || request.perfil().isBlank()) {
-            return request.admin() ? PerfilUsuario.ADMIN : PerfilUsuario.FISCAL;
+            return PerfilUsuario.FISCAL;
         }
         try {
             return PerfilUsuario.valueOf(request.perfil().trim().toUpperCase());

@@ -2,6 +2,7 @@ package contratos.config;
 
 import contratos.domain.AppUser;
 import contratos.domain.Sector;
+import contratos.domain.enums.PerfilUsuario;
 import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ public class DataInitializer implements ApplicationRunner {
         String sectorName = adminSector.trim().isBlank() ? "Administração" : adminSector.trim();
         Sector sector = sectors.findByNameIgnoreCase(sectorName)
                 .orElseGet(() -> sectors.save(new Sector(sectorName)));
-        users.save(new AppUser(email, passwordEncoder.encode(adminPassword), adminName.trim(), email, null, sector, true));
+        users.save(new AppUser(email, passwordEncoder.encode(adminPassword), adminName.trim(), email, null, sector, PerfilUsuario.ADMIN));
         log.info("Administrador inicial {} criado no setor {}", email, sectorName);
     }
 }

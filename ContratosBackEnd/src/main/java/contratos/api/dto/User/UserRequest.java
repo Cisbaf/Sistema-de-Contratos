@@ -11,6 +11,5 @@ public record UserRequest(
         @Size(max = 100) String cellPhone,
         @NotNull Long sectorId,
         @Size(min = 6, max = 100) String password,
-        boolean admin,
         String perfil
 ) {}
