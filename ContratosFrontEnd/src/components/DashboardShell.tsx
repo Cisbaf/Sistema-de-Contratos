@@ -5,6 +5,7 @@ import type { AuthStatus } from "@/types";
 import ApartmentOutlinedIcon from "@mui/icons-material/ApartmentOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
+import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -28,6 +29,7 @@ const items = [
   { href: "/dashboard/notifications", label: "Notificações", icon: <NotificationsOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/parametros", label: "Parâmetros", icon: <TuneOutlinedIcon />, hideFromFiscal: true },
   { href: "/dashboard/auditoria", label: "Auditoria", icon: <HistoryOutlinedIcon />, hideFromFiscal: true },
+  { href: "/dashboard/documentos", label: "Documentos", icon: <FolderOutlinedIcon />, hideFromFiscal: true },
 ];
 
 export default function DashboardShell({ children }: { children: ReactNode }) {
