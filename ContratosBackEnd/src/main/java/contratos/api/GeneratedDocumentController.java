@@ -6,6 +6,9 @@ import contratos.domain.enums.DocumentTemplateType;
 import contratos.service.GeneratedDocumentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +18,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -42,5 +47,23 @@ public class GeneratedDocumentController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.fileName() + "\"")
                 .body(file.content());
+    }
+
+    @GetMapping
+    @PreAuthorize("@contractAuthorization.isAdminControle(authentication)")
+    public ResponseEntity<Page<GeneratedDocumentResponse>> search(
+            @RequestParam(required = false) Long contractId,
+            @RequestParam(required = false) DocumentTemplateType documentType,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDate dataFim,
+            @RequestParam(required = false) Long authorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        var fromDate = dataInicio != null ? dataInicio.atStartOfDay() : null;
+        var toDate = dataFim != null ? dataFim.plusDays(1).atStartOfDay() : null;
+
+        return ResponseEntity.ok(service.findAll(contractId, documentType, fromDate, toDate, authorId,
+                PageRequest.of(page, size)));
     }
 }

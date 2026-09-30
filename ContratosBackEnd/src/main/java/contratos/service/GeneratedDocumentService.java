@@ -7,14 +7,18 @@ import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.GeneratedDocument;
+import contratos.domain.LancamentoFinanceiro;
 import contratos.domain.enums.DocumentFormat;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.repository.ContractRepository;
 import contratos.repository.GeneratedDocumentRepository;
+import contratos.repository.LancamentoFinanceiroRepository;
 import contratos.repository.UserRepository;
 import contratos.security.ContractAuthorization;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +35,7 @@ public class GeneratedDocumentService {
     private final GeneratedDocumentRepository repository;
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
+    private final LancamentoFinanceiroRepository lancamentoRepository;
     private final ContractAuthorization authorization;
 
     public GeneratedDocumentResponse store(GeneratedDocumentRequest request, String username) {
@@ -38,6 +44,8 @@ public class GeneratedDocumentService {
         if (!request.format().equals(DocumentFormat.PDF)) {
             throw new IllegalArgumentException("Formato WORD ainda não é suportado");
         }
+        LancamentoFinanceiro lancamento = request.lancamentoId() == null ? null
+                : lancamentoRepository.findById(request.lancamentoId()).orElseThrow(() -> new EntityNotFoundException("Lançamento não existe"));
         List<GeneratedDocument> versao = repository.findByContractIdAndDocumentTypeOrderByVersionDesc(request.contractId(), request.documentType());
 
         LocalDateTime dataGeracao = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
@@ -50,8 +58,28 @@ public class GeneratedDocumentService {
                 user,
                 request.format(),
                 request.documentType(),
-                contract));
+                contract,
+                lancamento));
         return mapResponse(document);
+    }
+
+    // Reaproveitar um documento já gerado pro mesmo lançamento, em vez de criar versão nova a cada clique
+    // (hoje só o ateste dos fiscais / PAYMENT_CHECKLIST usa isto — outros tipos não têm lançamento associado).
+    @Transactional(readOnly = true)
+    public Optional<GeneratedDocumentResponse> findExistingByLancamento(DocumentTemplateType documentType, Long lancamentoId) {
+        return repository.findByDocumentTypeAndLancamento_Id(documentType, lancamentoId).map(this::mapResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<GeneratedDocumentResponse> findAll(Long contractId, DocumentTemplateType documentTemplate, LocalDateTime fromDate, LocalDateTime toDate, Long authorId, Pageable pageable){
+        return repository.search(
+                contractId,
+                documentTemplate,
+                fromDate,
+                toDate,
+                authorId,
+                pageable
+        ).map(this::mapResponse);
     }
 
     @Transactional(readOnly = true)

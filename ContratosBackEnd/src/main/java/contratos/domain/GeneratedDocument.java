@@ -42,7 +42,17 @@ public class GeneratedDocument {
     @JoinColumn(nullable = false)
     private Contract contract;
 
+    // Opcional: só preenchido pro ateste dos fiscais (PAYMENT_CHECKLIST), pra saber a qual lançamento cada
+    // documento pertence e poder reaproveitar um já gerado em vez de criar versão nova a cada clique.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lancamento_id")
+    private LancamentoFinanceiro lancamento;
+
     public GeneratedDocument(String fileName, int version, byte[] content, LocalDateTime generatedAt, AppUser generatedBy, DocumentFormat format, DocumentTemplateType documentType, Contract contract) {
+        this(fileName, version, content, generatedAt, generatedBy, format, documentType, contract, null);
+    }
+
+    public GeneratedDocument(String fileName, int version, byte[] content, LocalDateTime generatedAt, AppUser generatedBy, DocumentFormat format, DocumentTemplateType documentType, Contract contract, LancamentoFinanceiro lancamento) {
         this.fileName = fileName;
         this.version = version;
         this.content = content;
@@ -51,5 +61,6 @@ public class GeneratedDocument {
         this.format = format;
         this.documentType = documentType;
         this.contract = contract;
+        this.lancamento = lancamento;
     }
 }
