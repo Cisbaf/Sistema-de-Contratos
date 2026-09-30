@@ -1,13 +1,12 @@
 package contratos.api.dto.Auditoria;
 
+import java.time.LocalDateTime;
+
 import contratos.domain.AuditLog;
 import contratos.domain.enums.AuditAction;
 import contratos.domain.enums.AuditEntityType;
 
-import java.time.LocalDateTime;
 
-/** Linha da consulta de auditoria (M6-30). Espelha o AuditLog; sem relação
- *  com AppUser porque ator já é snapshot (nome/e-mail) dentro do próprio log. */
 public record AuditLogResponse(
         Long id,
         LocalDateTime occurredAt,
