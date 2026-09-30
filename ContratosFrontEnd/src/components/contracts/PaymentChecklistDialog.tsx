@@ -48,12 +48,16 @@ export default function PaymentChecklistDialog({ open, lancamento, onClose, onGe
       if (!previewRef.current) throw new Error("Prévia indisponível");
       await copyRenderedContent(previewRef.current);
       setCopiado(true);
+      // Garante que o ateste fique registrado em "Documentos" mesmo quando o fiscal só copia (não baixa o PDF).
+      // Reaproveita se já existir um gerado pra este lançamento — não bloqueia a cópia se isso falhar.
+      if (lancamento) void postJson(`/lancamentos/${lancamento.id}/checklist`).catch(() => undefined);
     } catch {
       setError("Não foi possível copiar o texto. Selecione e copie manualmente.");
     }
   }
 
-  // Baixar o PDF gera uma nova versão guardada em "Documentos gerados"; copiar não guarda nada.
+  // Tanto "Copiar texto" quanto "Baixar PDF" registram o ateste em "Documentos gerados" — mas só na primeira
+  // vez por lançamento: se já existe um gerado, o backend reaproveita o mesmo em vez de criar versão nova.
   async function baixarPdf() {
     if (!lancamento) return;
     setBaixando(true); setError("");

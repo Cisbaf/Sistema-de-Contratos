@@ -38,7 +38,8 @@ import java.util.regex.Pattern;
 /**
  * Ateste dos fiscais ("Gerar Checklist" da spec, item 7.3): documento por lançamento financeiro, gerado a
  * partir do template PAYMENT_CHECKLIST. Assina só o fiscal que gera (nome e setor do usuário logado): cada fiscal gera e assina o seu ateste.
- * Cada geração vira uma nova versão em GeneratedDocument; o nome do arquivo identifica contrato e nota fiscal.
+ * O primeiro "gerar" (copiar texto ou baixar PDF) de um lançamento cria o documento; chamadas seguintes pro
+ * mesmo lançamento reaproveitam o mesmo registro (sem criar versão nova) — ver {@link #gerar}.
  */
 @Service
 @RequiredArgsConstructor
@@ -64,6 +65,12 @@ public class PaymentChecklistService {
     @Transactional
     public GeneratedDocumentResponse gerar(Long lancamentoId, Authentication authentication) {
         LancamentoFinanceiro lancamento = buscarLancamentoAtivo(lancamentoId, authentication);
+
+        // Já existe um ateste gerado pra este lançamento? Reaproveita em vez de criar versão nova
+        // (isso vale tanto pra "copiar texto" quanto "baixar PDF" — os dois chamam este método).
+        var existente = generatedDocumentService.findExistingByLancamento(DocumentTemplateType.PAYMENT_CHECKLIST, lancamentoId);
+        if (existente.isPresent()) return existente.get();
+
         AppUser usuario = buscarUsuario(authentication.getName());
         Contract contrato = lancamento.getContrato();
 
@@ -73,7 +80,7 @@ public class PaymentChecklistService {
         String fileName = "ateste-" + limparNomeArquivo(contrato.getNumberContract())
                 + "-nf-" + limparNomeArquivo(lancamento.getNotaFiscal()) + ".pdf";
         return generatedDocumentService.store(new GeneratedDocumentRequest(
-                contrato.getId(), DocumentTemplateType.PAYMENT_CHECKLIST, DocumentFormat.PDF, fileName, pdf),
+                contrato.getId(), DocumentTemplateType.PAYMENT_CHECKLIST, DocumentFormat.PDF, fileName, pdf, lancamento.getId()),
                 usuario.getUsername());
     }
 
