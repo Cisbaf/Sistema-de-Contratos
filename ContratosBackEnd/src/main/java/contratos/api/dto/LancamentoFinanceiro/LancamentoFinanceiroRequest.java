@@ -8,7 +8,7 @@ import java.time.LocalDate;
 public record LancamentoFinanceiroRequest(
         @NotBlank @Size(max = 255) String numeroProcesso,
         @NotBlank @Size(max = 255) String notaFiscal,
-        @Size(max = 255) String parcela,
+        @Size(max = 255) @Pattern(regexp = "^\\d*$", message = "Parcela deve conter apenas números") String parcela,
         @NotNull LocalDate competencia,
         @NotNull @Positive BigDecimal valorNota,
         String observacoes
