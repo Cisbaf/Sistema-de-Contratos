@@ -59,7 +59,7 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
     FISCAL: "Fiscal",
   } as const;
 
-  const perfilLabel = auth?.perfil ? profileLabels[auth.perfil] : auth?.admin ? "Administrador" : "Usuário";
+  const perfilLabel = auth?.perfil ? profileLabels[auth.perfil] : "Usuário";
 
   const drawer = <Stack height="100%">
     <Toolbar sx={{ px: 2.5 }}>

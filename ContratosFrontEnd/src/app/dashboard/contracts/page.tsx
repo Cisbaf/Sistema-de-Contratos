@@ -39,8 +39,8 @@ const stickyActions = {
 
 export default function ContractsPage() {
   const auth = useAuth();
-  const canManageContracts = auth.perfil === "ADMIN" || auth.perfil === "CONTROLE_INTERNO" || (!auth.perfil && Boolean(auth.admin));
-  const isAdmin = auth.perfil === "ADMIN" || (!auth.perfil && Boolean(auth.admin));
+  const canManageContracts = auth.perfil === "ADMIN" || auth.perfil === "CONTROLE_INTERNO";
+  const isAdmin = auth.perfil === "ADMIN";
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,7 +148,7 @@ export default function ContractsPage() {
   }
 
   return <>
-    <PageHeader title="Contratos" subtitle="Acompanhe vigências, valores e fiscais responsáveis." action={canManageContracts ? "Novo contrato" : undefined} onAction={create} />
+    <PageHeader title="Contratos" subtitle="" action={canManageContracts ? "Novo contrato" : undefined} onAction={create} />
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
       {[{ label: "Total de contratos", value: contracts.length }, { label: "Contratos vigentes", value: active },
       { label: "Valor mensal", value: money.format(monthly) }].map(card =>

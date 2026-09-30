@@ -10,7 +10,7 @@ import { FormEvent, useEffect, useState } from "react";
 
 export default function NotificationSettingsPage() {
   const auth = useAuth();
-  const canEdit = Boolean(auth.admin);
+  const canEdit = auth.perfil === "ADMIN";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

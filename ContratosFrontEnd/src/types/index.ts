@@ -7,7 +7,6 @@ export interface User {
   email: string;
   cellPhone: string | null;
   sector: { id: number; name: string } | null;
-  admin: boolean;
   perfil: "ADMIN" | "CONTROLE_INTERNO" | "FISCAL";
 }
 
@@ -48,7 +47,6 @@ export interface AuthStatus {
   valid: boolean;
   username?: string;
   name?: string;
-  admin?: boolean;
   perfil?: "ADMIN" | "CONTROLE_INTERNO" | "FISCAL";
 }
 

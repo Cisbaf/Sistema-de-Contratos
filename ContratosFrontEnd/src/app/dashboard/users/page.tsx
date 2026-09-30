@@ -52,7 +52,7 @@ export default function UsersPage() {
   function create() { setEditing(null); setForm(emptyForm); setOpen(true); }
 
   function edit(user: User) {
-    const perfil = user.perfil ?? (user.admin ? "ADMIN" : "FISCAL");
+    const perfil = user.perfil;
     setEditing(user);
     setForm({
       name: user.name, email: user.email, cellPhone: user.cellPhone ?? "", sectorId: user.sector?.id ?? "",
@@ -63,7 +63,7 @@ export default function UsersPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     try {
-      const payload = { ...form, admin: form.perfil === "ADMIN" };
+      const payload = { ...form, admin: form.perfil === "ADMIN", password: form.password || undefined };
       if (editing) await putJson(`/users/${editing.id}`, payload);
       else await postJson("/users", payload);
       setOpen(false);
@@ -79,7 +79,7 @@ export default function UsersPage() {
   }
 
   return <>
-    <PageHeader title="Usuários" subtitle="Gerencie responsáveis e seus setores de atuação." action={auth.admin ? "Adicionar usuário" : undefined}
+    <PageHeader title="Usuários" subtitle="Gerencie responsáveis e seus setores de atuação." action={auth.perfil === "ADMIN" ? "Adicionar usuário" : undefined}
       onAction={create} />
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
       <Box p={2}><TextField value={search} onChange={e => setSearch(e.target.value)}
@@ -93,7 +93,7 @@ export default function UsersPage() {
               <TableCell>Contato</TableCell>
               <TableCell>Setor</TableCell>
               <TableCell>Perfil</TableCell>
-              {auth.admin && <TableCell align="right">Ações</TableCell>}
+              {auth.perfil === "ADMIN" && <TableCell align="right">Ações</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -111,11 +111,11 @@ export default function UsersPage() {
                 <TableCell>{user.cellPhone || "—"}</TableCell>
                 <TableCell><Chip label={user.sector?.name ?? "Sem setor"} size="small" variant="outlined" /></TableCell>
                 <TableCell>
-                  {user.perfil === "ADMIN" || user.admin ? <Chip icon={<AdminPanelSettingsOutlinedIcon />}
+                  {user.perfil === "ADMIN" ? <Chip icon={<AdminPanelSettingsOutlinedIcon />}
                     label={perfilLabel[user.perfil ?? "ADMIN"]}
                     size="small" color="primary" /> : <Chip label={perfilLabel[user.perfil] ?? "Usuário"} size="small" />}
                 </TableCell>
-                {auth.admin &&
+                {auth.perfil === "ADMIN" &&
                   <TableCell align="right">
                     <IconButton onClick={() => edit(user)}><EditOutlinedIcon /></IconButton>
                     <IconButton color="error" onClick={() => setRemoving(user)}><DeleteOutlineIcon /></IconButton>
