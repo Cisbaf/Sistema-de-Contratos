@@ -349,25 +349,43 @@ class RbacMatrixIntegrationTest {
     }
 
     /**
-     * ACHADO (baixa severidade), fixado aqui para não passar despercebido: nos endpoints por id de FILHO
-     * (lançamento, anexo, documento gerado) o service faz findById -> 404 ANTES de checar o contrato -> 403.
-     * Um fiscal sem vínculo consegue distinguir "id não existe" (404) de "id existe mas não é meu" (403),
-     * ou seja, enumerar ids. Nos endpoints por id de CONTRATO o @PreAuthorize roda antes e responde 403 nos dois casos.
-     * Se um dia o service passar a checar permissão antes de buscar, este teste deve ser atualizado para 403.
+     * Regra (decidida em 01/10/2026, correção do achado "id de filho vaza existência"): quem NÃO é Admin/CI recebe 403
+     * tanto para "id não existe" quanto para "id existe mas não é meu" — em qualquer endpoint, de contrato ou de filho
+     * (lançamento, anexo, documento gerado). Só Admin/CI enxergam o 404 de verdade.
      */
     @Test
-    void ordemDe404e403_idDeContratoNaoVazaExistencia_idDeFilhoVaza() throws Exception {
-        // contrato: inexistente e "de outro" são indistinguíveis para o fiscal sem vínculo
+    void idInexistenteNaoVazaExistencia_fiscalSempre403_adminECI404() throws Exception {
+        // contrato (o @PreAuthorize já cobria)
         assertThat(call(Persona.FS, get("/api/contracts/" + MISSING))).isEqualTo(403);
         assertThat(call(Persona.FS, get("/api/contracts/" + contractId))).isEqualTo(403);
-        // admin enxerga o 404 normalmente
         assertThat(call(Persona.ADMIN, get("/api/contracts/" + MISSING))).isEqualTo(404);
 
-        // filho: comportamento ATUAL (vazamento de existência) fixado
-        assertThat(call(Persona.FS, delete("/api/lancamentos/" + MISSING))).isEqualTo(404);
-        assertThat(call(Persona.FS, delete("/api/lancamentos/" + lancamentoId))).isEqualTo(403);
-        assertThat(call(Persona.FS, get("/api/attachment/baixar/" + MISSING))).isEqualTo(404);
-        assertThat(call(Persona.FS, get("/api/attachment/baixar/" + attachmentId))).isEqualTo(403);
+        for (Persona p : List.of(Persona.FS, Persona.FV)) {
+            for (Req r : childRequests(MISSING)) {
+                assertThat(call(p, r.build(this))).as("%s em id-filho inexistente", p).isEqualTo(403);
+            }
+        }
+        for (Persona p : List.of(Persona.ADMIN, Persona.CI)) {
+            for (Req r : childRequests(MISSING)) {
+                assertThat(call(p, r.build(this))).as("%s em id-filho inexistente", p).isEqualTo(404);
+            }
+        }
+        // e "existe mas não é meu" continua 403 para o fiscal sem vínculo
+        for (Req r : childRequests(null)) {
+            assertThat(call(Persona.FS, r.build(this))).as("FS em id-filho existente de outro contrato").isEqualTo(403);
+        }
+    }
+
+    /** Os 6 endpoints por id de filho; {@code missing == null} usa os ids reais semeados. */
+    private List<Req> childRequests(Long missing) {
+        return List.of(
+            t -> json(put("/api/lancamentos/" + (missing != null ? missing : t.lancamentoId)), LANCAMENTO_JSON),
+            t -> delete("/api/lancamentos/" + (missing != null ? missing : t.lancamentoId)),
+            t -> get("/api/lancamentos/" + (missing != null ? missing : t.lancamentoId) + "/checklist/preview"),
+            t -> post("/api/lancamentos/" + (missing != null ? missing : t.lancamentoId) + "/checklist"),
+            t -> get("/api/attachment/baixar/" + (missing != null ? missing : t.attachmentId)),
+            t -> get("/api/generate-document/download").param("documentId", String.valueOf(missing != null ? missing : t.documentId))
+        );
     }
 
     // ------------------------------------------------------------------ Controle Interno: gestão de usuários e setores (regra de contenção)
@@ -499,6 +517,48 @@ class RbacMatrixIntegrationTest {
         assertThat(call(Persona.ANON, get("/api/contracts").header("Authorization", "Bearer lixo"))).isEqualTo(403);
     }
 
+    /**
+     * Achado do M6-80: JWT ainda válido (assinatura e prazo ok) cujo dono não existe mais — usuário excluído, ou
+     * e-mail trocado (o username é o e-mail) — estourava UsernameNotFoundException dentro do JwtAuthenticationFilter
+     * e virava 500 em TODA requisição, inclusive /auth/validate. O correto é tratar como anônimo: 403 em rota
+     * protegida e {"valid": false} no /auth/validate (que é público).
+     */
+    @Test
+    void tokenDeUsuarioExcluidoOuComEmailTrocadoViraAnonimo_nunca500() throws Exception {
+        Sector sector = sectors.findById(sectorId).orElseThrow();
+
+        // caso 1: usuário excluído
+        AppUser excluido = users.save(user("excluido.rbac@test.local", "Excluido", sector, PerfilUsuario.FISCAL));
+        String tokenExcluido = jwt.generate(excluido.getUsername(), excluido.getName());
+        // antes de excluir, o token funciona (sanidade do teste)
+        assertThat(call(Persona.ANON, get("/api/contracts/mine").header("Authorization", "Bearer " + tokenExcluido))).isEqualTo(200);
+        users.delete(excluido);
+        users.flush();
+        assertThat(call(Persona.ANON, get("/api/contracts/mine").header("Authorization", "Bearer " + tokenExcluido))).isEqualTo(403);
+        String json = mvc.perform(get("/api/auth/validate").header("Authorization", "Bearer " + tokenExcluido))
+                .andReturn().getResponse().getContentAsString();
+        assertThat((Boolean) JsonPath.read(json, "$.valid")).isFalse();
+
+        // caso 2: e-mail trocado pelo Admin (o token antigo aponta para o username antigo)
+        AppUser renomeado = users.save(user("antigo.rbac@test.local", "Renomeado", sector, PerfilUsuario.FISCAL));
+        String tokenAntigo = jwt.generate(renomeado.getUsername(), renomeado.getName());
+        assertThat(call(Persona.ADMIN, json(put("/api/users/" + renomeado.getId()), userJson("novo.email.rbac@test.local", "FISCAL")))).isEqualTo(200);
+        assertThat(call(Persona.ANON, get("/api/users/me").header("Authorization", "Bearer " + tokenAntigo))).isEqualTo(403);
+        String json2 = mvc.perform(get("/api/auth/validate").header("Authorization", "Bearer " + tokenAntigo))
+                .andReturn().getResponse().getContentAsString();
+        assertThat((Boolean) JsonPath.read(json2, "$.valid")).isFalse();
+    }
+
+    /** O token NOVO (com o e-mail novo) continua funcionando: só o antigo morre. */
+    @Test
+    void tokenComEmailNovoFuncionaDepoisDaTroca() throws Exception {
+        Sector sector = sectors.findById(sectorId).orElseThrow();
+        AppUser u = users.save(user("troca.rbac@test.local", "Troca", sector, PerfilUsuario.FISCAL));
+        assertThat(call(Persona.ADMIN, json(put("/api/users/" + u.getId()), userJson("troca2.rbac@test.local", "FISCAL")))).isEqualTo(200);
+        String tokenNovo = jwt.generate("troca2.rbac@test.local", "Troca");
+        assertThat(call(Persona.ANON, get("/api/users/me").header("Authorization", "Bearer " + tokenNovo))).isEqualTo(200);
+    }
+
     @Test
     void cookieAuthTokenAutenticaIgualAoHeader() throws Exception {
         var cookie = new jakarta.servlet.http.Cookie("auth_token", token(Persona.CI));
@@ -546,5 +606,33 @@ class RbacMatrixIntegrationTest {
                 "{\"name\":\"Qualquer Um\",\"email\":\"qualquer@test.local\",\"password\":\"senha123\"}"));
         assertThat(status).isEqualTo(200);
         assertThat(users.findByUsername("qualquer@test.local").orElseThrow().getPerfil()).isEqualTo(PerfilUsuario.FISCAL);
+    }
+
+    // ------------------------------------------------------------------ endurecimento do M6-80
+
+    @Test
+    void adminNaoExcluiASiMesmoMasExcluiOutroAdmin() throws Exception {
+        assertThat(call(Persona.ADMIN, delete("/api/users/" + admin.getId()))).isEqualTo(409);
+        assertThat(users.findById(admin.getId())).isPresent();
+        assertThat(call(Persona.ADMIN, delete("/api/users/" + targetAdmin.getId()))).isIn(200, 204);
+        assertThat(users.findById(targetAdmin.getId())).isEmpty();
+    }
+
+    @Test
+    void tamanhoDePaginaTemTetoDe100NaAuditoriaENaBuscaDeDocumentos() throws Exception {
+        for (String path : List.of("/api/auditoria", "/api/generate-document")) {
+            assertThat(call(Persona.ADMIN, get(path).param("size", "100"))).as("%s size=100", path).isEqualTo(200);
+            assertThat(call(Persona.CI, get(path).param("size", "101"))).as("%s size=101", path).isEqualTo(400);
+            String json = body(Persona.ADMIN, get(path).param("size", "101"));
+            assertThat((String) JsonPath.read(json, "$.message")).contains("100");
+        }
+    }
+
+    @Test
+    void trocaDeSenhaFicaNaAuditoriaSemExporASenha() throws Exception {
+        // userJson() manda password "senha123"; o perfil e os demais campos não mudam
+        assertThat(call(Persona.ADMIN, json(put("/api/users/" + targetFiscal.getId()), userJson("alvo.rbac@test.local", "FISCAL")))).isEqualTo(200);
+        String json = body(Persona.ADMIN, get("/api/auditoria").param("entityType", "USER").param("action", "UPDATE").param("size", "50"));
+        assertThat(json).contains("Senha redefinida").doesNotContain("senha123");
     }
 }
