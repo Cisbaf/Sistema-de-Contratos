@@ -29,7 +29,7 @@ public class SectorController {
     public ResponseEntity<List<SectorResponse>> getAll() { return ResponseEntity.ok(service.findAll()); }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
     public ResponseEntity<SectorResponse> create(@RequestBody @Valid SectorRequest request, Authentication authentication) {
         AppUser actor = (AppUser) authentication.getPrincipal();
 
@@ -37,7 +37,7 @@ public class SectorController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
     public ResponseEntity<SectorResponse> update(@PathVariable Long id, @RequestBody @Valid SectorRequest request, Authentication authentication) {
         AppUser actor = (AppUser) authentication.getPrincipal();
 

@@ -1,12 +1,5 @@
 package contratos.service;
 
-import java.time.LocalDate;
-import java.util.List;
-
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import contratos.api.dto.User.UserRequest;
 import contratos.api.dto.User.UserSummary;
 import contratos.domain.AppUser;
@@ -20,6 +13,13 @@ import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +47,8 @@ public class UserService {
         AppUser user = new AppUser(request.email(), passwordEncoder.encode(request.password()), request.name().trim(),
                 request.email().trim().toLowerCase(), request.cellPhone(), sector, perfil);
 
+        ensureActorCanManage(appUser, null, user.getPerfil());
+
         var newUser = users.save(user);
 
         auditService.record(appUser, AuditAction.CREATE, AuditEntityType.USER, newUser.getId(),
@@ -59,6 +61,8 @@ public class UserService {
         AppUser user = getUser(id);
         ensureUnique(request.email(), id);
         PerfilUsuario perfil = resolvePerfil(request);
+
+        ensureActorCanManage(appUser, perfil, user.getPerfil());
 
         if (contracts.existsByFiscaisIdAndEndDateGreaterThanEqual(user.getId(), LocalDate.now()) && !perfil.equals(PerfilUsuario.FISCAL)) {
             throw new ConflictException("Fiscais com contratos ativos não podem mudar de perfil");
@@ -90,6 +94,14 @@ public class UserService {
         auditService.record(appUser, AuditAction.DELETE, AuditEntityType.USER, user.getId(),
                 null, "Usuário " + user.getName() + " apagado", null);
         users.delete(user);
+    }
+
+    private void ensureActorCanManage(AppUser actor, PerfilUsuario currentPerfil, PerfilUsuario requestedPerfil) {
+        if (actor.isAdmin()) return;
+        boolean touchesAdmin = requestedPerfil == PerfilUsuario.ADMIN || currentPerfil == PerfilUsuario.ADMIN;
+        if (touchesAdmin) {
+            throw new AccessDeniedException("Apenas administradores podem criar ou alterar administradores");
+        }
     }
 
     public AppUser getUser(Long id) {

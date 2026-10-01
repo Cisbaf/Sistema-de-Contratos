@@ -12,6 +12,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/users")
@@ -30,11 +31,11 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserSummary> me(Authentication authentication) {
-        return ResponseEntity.ok(EntityMapper.user((AppUser) authentication.getPrincipal()));
+        return ResponseEntity.ok(EntityMapper.user((AppUser) Objects.requireNonNull(authentication.getPrincipal())));
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
     public ResponseEntity<UserSummary> create(@RequestBody @Valid UserRequest request, Authentication authentication) {
         AppUser actor = (AppUser) authentication.getPrincipal();
 
@@ -42,7 +43,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'CONTROLE_INTERNO')")
     public ResponseEntity<UserSummary> update(@PathVariable Long id, @RequestBody @Valid UserRequest request, Authentication authentication) {
         AppUser actor = (AppUser) authentication.getPrincipal();
 
