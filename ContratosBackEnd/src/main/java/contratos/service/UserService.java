@@ -20,11 +20,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
-    private final UserRepository users;
+    private final UserRepository userRepository;
     private final SectorRepository sectors;
     private final ContractRepository contracts;
     private final PasswordEncoder passwordEncoder;
@@ -33,7 +34,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserSummary> findAll() {
-        return users.findAll().stream().map(EntityMapper::user).toList();
+        return userRepository.findAll().stream().map(EntityMapper::user).toList();
     }
 
     @Transactional
@@ -49,7 +50,7 @@ public class UserService {
 
         ensureActorCanManage(appUser, null, user.getPerfil());
 
-        var newUser = users.save(user);
+        var newUser = userRepository.save(user);
 
         auditService.record(appUser, AuditAction.CREATE, AuditEntityType.USER, newUser.getId(),
                 null, "Usuário " + newUser.getName() + " criado", null);
@@ -79,6 +80,7 @@ public class UserService {
                 request.cellPhone(), getSector(request.sectorId()), perfil);
         if (request.password() != null && !request.password().isBlank()) {
             user.changePassword(passwordEncoder.encode(request.password()));
+            changes.note("Senha redefinida");
         }
         auditService.record(appUser, AuditAction.UPDATE, AuditEntityType.USER, user.getId(),
                 null, "Usuário " + user.getName() + " atualizado", changes.build());
@@ -91,9 +93,15 @@ public class UserService {
         if (contracts.countByFiscaisId(id) > 0) {
             throw new ConflictException("O fiscal está vinculado a contratos");
         }
+        if (Objects.equals(user.getId(), appUser.getId())) {
+            throw new ConflictException("Não é permitido excluir o próprio usuário");
+        }
+        if (user.isAdmin() && userRepository.countByPerfil(PerfilUsuario.ADMIN) <= 1) {
+            throw new ConflictException("Não é permitido excluir o único Administrador");
+        }
         auditService.record(appUser, AuditAction.DELETE, AuditEntityType.USER, user.getId(),
                 null, "Usuário " + user.getName() + " apagado", null);
-        users.delete(user);
+        userRepository.delete(user);
     }
 
     private void ensureActorCanManage(AppUser actor, PerfilUsuario currentPerfil, PerfilUsuario requestedPerfil) {
@@ -105,7 +113,7 @@ public class UserService {
     }
 
     public AppUser getUser(Long id) {
-        return users.findById(id).orElseThrow(() -> new EntityNotFoundException("Fiscal não encontrado"));
+        return userRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Fiscal não encontrado"));
     }
 
     private Sector getSector(Long id) {
@@ -113,7 +121,7 @@ public class UserService {
     }
 
     private void ensureUnique(String email, Long ignoredId) {
-        users.findByUsername(email.trim().toLowerCase()).ifPresent(existing -> {
+        userRepository.findByUsername(email.trim().toLowerCase()).ifPresent(existing -> {
             if (!existing.getId().equals(ignoredId)) throw new ConflictException("E-mail já cadastrado");
         });
     }

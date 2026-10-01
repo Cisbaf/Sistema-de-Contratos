@@ -36,6 +36,12 @@ public class AuditChangeLog {
         return value == null ? "(vazio)" : value.setScale(2, RoundingMode.HALF_UP).toPlainString();
     }
 
+    /** Registra um fato sem comparar valores (ex.: "Senha redefinida", que não pode expor o conteúdo). */
+    public AuditChangeLog note(String text) {
+        parts.add(text);
+        return this;
+    }
+
     public String build() {
         return parts.length() == 0 ? null : parts.toString();
     }
