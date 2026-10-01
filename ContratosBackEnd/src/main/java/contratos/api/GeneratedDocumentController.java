@@ -1,38 +1,32 @@
 package contratos.api;
 
-import contratos.api.dto.GeneratedDocument.GeneratedDocumentRequest;
 import contratos.api.dto.GeneratedDocument.GeneratedDocumentResponse;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.service.GeneratedDocumentService;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.security.Principal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/generate-document")
 public class GeneratedDocumentController {
-    private final GeneratedDocumentService service;
+    private static final int MAX_PAGE_SIZE = 100;
 
-    @PostMapping
-    @PreAuthorize("@contractAuthorization.canRead(#request.contractId(), authentication)")
-    public ResponseEntity<GeneratedDocumentResponse> storeDocument(@Valid @RequestBody GeneratedDocumentRequest request, Principal principal) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.store(request, principal.getName()));
-    }
+    private final GeneratedDocumentService service;
 
     @GetMapping("/history")
     @PreAuthorize("@contractAuthorization.canRead(#contractId, authentication)")
@@ -60,6 +54,9 @@ public class GeneratedDocumentController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
+        if (size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("O tamanho máximo da página é " + MAX_PAGE_SIZE);
+        }
         var fromDate = dataInicio != null ? dataInicio.atStartOfDay() : null;
         var toDate = dataFim != null ? dataFim.plusDays(1).atStartOfDay() : null;
 
