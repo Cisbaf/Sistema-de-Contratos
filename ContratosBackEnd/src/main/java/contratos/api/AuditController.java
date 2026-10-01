@@ -24,6 +24,8 @@ import java.time.LocalDate;
 @PreAuthorize("@contractAuthorization.isAdminControle(authentication)")
 public class AuditController {
 
+    private static final int MAX_PAGE_SIZE = 100;
+
     private final AuditLogRepository repository;
 
 
@@ -40,6 +42,10 @@ public class AuditController {
     ) {
         var fromDate = dataInicio != null ? dataInicio.atStartOfDay() : null;
         var toDate = dataFim != null ? dataFim.plusDays(1).atStartOfDay() : null;
+
+        if (size > MAX_PAGE_SIZE) {
+            throw new IllegalArgumentException("O tamanho máximo da página é " + MAX_PAGE_SIZE);
+        }
 
         Page<AuditLogResponse> result = repository
                 .search(fromDate, toDate, entityType, action, contractId, actorId, PageRequest.of(page, size))
