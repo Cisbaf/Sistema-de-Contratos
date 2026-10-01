@@ -45,7 +45,7 @@ public class UserService {
         ensureUnique(request.email(), null);
         Sector sector = getSector(request.sectorId());
         PerfilUsuario perfil = resolvePerfil(request);
-        AppUser user = new AppUser(request.email(), passwordEncoder.encode(request.password()), request.name().trim(),
+        AppUser user = new AppUser(request.email().trim().toLowerCase(), passwordEncoder.encode(request.password()), request.name().trim(),
                 request.email().trim().toLowerCase(), request.cellPhone(), sector, perfil);
 
         ensureActorCanManage(appUser, null, user.getPerfil());
@@ -121,7 +121,12 @@ public class UserService {
     }
 
     private void ensureUnique(String email, Long ignoredId) {
-        userRepository.findByUsername(email.trim().toLowerCase()).ifPresent(existing -> {
+        String normalized = email.trim().toLowerCase();
+        // username e e-mail são únicos no banco; usuário legado pode ter username diferente do e-mail
+        userRepository.findByUsername(normalized).ifPresent(existing -> {
+            if (!existing.getId().equals(ignoredId)) throw new ConflictException("E-mail já cadastrado");
+        });
+        userRepository.findByEmail(normalized).ifPresent(existing -> {
             if (!existing.getId().equals(ignoredId)) throw new ConflictException("E-mail já cadastrado");
         });
     }

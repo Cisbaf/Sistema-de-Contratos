@@ -635,4 +635,52 @@ class RbacMatrixIntegrationTest {
         String json = body(Persona.ADMIN, get("/api/auditoria").param("entityType", "USER").param("action", "UPDATE").param("size", "50"));
         assertThat(json).contains("Senha redefinida").doesNotContain("senha123");
     }
+
+    // ------------------------------------------------------------------ e-mail duplicado (achado da tela, M6-80)
+
+    /**
+     * Achado do roteiro de tela: ao criar usuário com e-mail já existente a tela mostrou "Operação não pôde ser
+     * concluída por conflito de dados" (mensagem genérica do handler de DataIntegrityViolationException) em vez de
+     * "E-mail já cadastrado". Causa: ensureUnique só procura por username; um usuário cujo username é diferente do
+     * e-mail (legado, ou criado antes da convenção username = e-mail) não é achado e quem barra é a constraint do banco.
+     */
+    private void seedUsuarioLegado() {
+        Sector sector = sectors.findById(sectorId).orElseThrow();
+        users.save(new AppUser("legado", "{noop}x", "Legado", "dup.rbac@test.local", null, sector, PerfilUsuario.FISCAL));
+        users.flush();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest(name = "criar com e-mail {0} (username == e-mail)")
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"fv.rbac@test.local", "FV.RBAC@test.local"})
+    void emailDuplicadoDevolve409ComMensagemClara_caso_normal(String email) throws Exception {
+        String json = body(Persona.ADMIN, json(post("/api/users"), userJson(email, "FISCAL")));
+        assertThat((String) JsonPath.read(json, "$.message")).isEqualTo("E-mail já cadastrado");
+    }
+
+    // Um teste por e-mail porque, no caso ainda quebrado, a violação de constraint estraga a sessão do teste.
+    @org.junit.jupiter.params.ParameterizedTest(name = "criar com e-mail {0} (usuário legado: username != e-mail)")
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"dup.rbac@test.local", "DUP.rbac@test.local"})
+    void emailDuplicadoDevolve409ComMensagemClara_usernameDiferenteDoEmail(String email) throws Exception {
+        seedUsuarioLegado();
+        MockHttpServletRequestBuilder req = json(post("/api/users"), userJson(email, "FISCAL"));
+        var res = mvc.perform(as(Persona.ADMIN, req)).andReturn().getResponse();
+        assertThat(res.getStatus()).isEqualTo(409);
+        assertThat((String) JsonPath.read(res.getContentAsString(), "$.message")).isEqualTo("E-mail já cadastrado");
+    }
+
+    @Test
+    void editarParaEmailDeOutroUsuarioDevolve409ComMensagemClara() throws Exception {
+        seedUsuarioLegado();
+        var res = mvc.perform(as(Persona.ADMIN, json(put("/api/users/" + targetFiscal.getId()),
+                userJson("dup.rbac@test.local", "FISCAL")))).andReturn().getResponse();
+        assertThat(res.getStatus()).isEqualTo(409);
+        assertThat((String) JsonPath.read(res.getContentAsString(), "$.message")).isEqualTo("E-mail já cadastrado");
+    }
+
+    /** O username (usado no login e como subject do token) tem de nascer normalizado: minúsculo e sem espaços. */
+    @Test
+    void usernameNasceNormalizadoNaCriacao() throws Exception {
+        assertThat(call(Persona.ADMIN, json(post("/api/users"), userJson("Maiusc.Rbac@Test.Local", "FISCAL")))).isIn(200, 201);
+        assertThat(users.findByUsername("maiusc.rbac@test.local")).isPresent();
+    }
 }
