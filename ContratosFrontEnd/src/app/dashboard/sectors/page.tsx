@@ -22,6 +22,8 @@ export default function SectorsPage() {
   const [name, setName] = useState("");
   const [removing, setRemoving] = useState<Sector | null>(null);
   const [feedback, setFeedback] = useState({ message: "", error: false });
+  const isAdmin = auth.perfil === "ADMIN";
+  const canManage = isAdmin || auth.perfil === "CONTROLE_INTERNO";
 
   async function load() {
     try { const [sectorData, userData] = await Promise.all([getJson<Sector[]>("/sectors"), getJson<User[]>("/users")]); setSectors(sectorData); setUsers(userData); }
@@ -44,7 +46,7 @@ export default function SectorsPage() {
 
   return <>
     <PageHeader title="Setores" subtitle="Organize os fiscais por área responsável."
-      action={auth.perfil === "ADMIN" ? "Novo setor" : undefined} onAction={create} />
+      action={canManage ? "Novo setor" : undefined} onAction={create} />
 
     {loading ? <PageLoading /> :
       <Paper variant="outlined" sx={{ p: { xs: 1, sm: 2 } }}>
@@ -76,10 +78,10 @@ export default function SectorsPage() {
                       <Typography variant="body2" color="text.secondary">Nenhum fiscal vinculado.</Typography>
                     }
                   </Stack>
-                </Box>{auth.perfil === "ADMIN" &&
+                </Box>{canManage &&
                   <Stack direction="row" alignSelf="flex-end">
                     <IconButton onClick={() => edit(sector)}><EditOutlinedIcon /></IconButton>
-                    <IconButton color="error" onClick={() => setRemoving(sector)}><DeleteOutlineIcon /></IconButton>
+                    {isAdmin && <IconButton color="error" onClick={() => setRemoving(sector)}><DeleteOutlineIcon /></IconButton>}
                   </Stack>}
               </Stack>
             </AccordionDetails>

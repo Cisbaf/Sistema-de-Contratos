@@ -29,6 +29,8 @@ export default function UsersPage() {
   const [open, setOpen] = useState(false);
   const [removing, setRemoving] = useState<User | null>(null);
   const [feedback, setFeedback] = useState({ message: "", error: false });
+  const isAdmin = auth.perfil === "ADMIN";
+  const canManage = isAdmin || auth.perfil === "CONTROLE_INTERNO";
 
   async function load() {
     try {
@@ -79,7 +81,7 @@ export default function UsersPage() {
   }
 
   return <>
-    <PageHeader title="Usuários" subtitle="Gerencie responsáveis e seus setores de atuação." action={auth.perfil === "ADMIN" ? "Adicionar usuário" : undefined}
+    <PageHeader title="Usuários" subtitle="Gerencie responsáveis e seus setores de atuação." action={canManage ? "Adicionar usuário" : undefined}
       onAction={create} />
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
       <Box p={2}><TextField value={search} onChange={e => setSearch(e.target.value)}
@@ -93,7 +95,7 @@ export default function UsersPage() {
               <TableCell>Contato</TableCell>
               <TableCell>Setor</TableCell>
               <TableCell>Perfil</TableCell>
-              {auth.perfil === "ADMIN" && <TableCell align="right">Ações</TableCell>}
+              {canManage && <TableCell align="right">Ações</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -115,14 +117,18 @@ export default function UsersPage() {
                     label={perfilLabel[user.perfil ?? "ADMIN"]}
                     size="small" color="primary" /> : <Chip label={perfilLabel[user.perfil] ?? "Usuário"} size="small" />}
                 </TableCell>
-                {auth.perfil === "ADMIN" &&
+                {canManage && (
                   <TableCell align="right">
-                    <IconButton onClick={() => edit(user)}><EditOutlinedIcon /></IconButton>
-                    <IconButton color="error" onClick={() => setRemoving(user)}><DeleteOutlineIcon /></IconButton>
+                    {(isAdmin || user.perfil !== "ADMIN") && (
+                      <IconButton onClick={() => edit(user)}><EditOutlinedIcon /></IconButton>
+                    )}
+                    {isAdmin && (
+                      <IconButton color="error" onClick={() => setRemoving(user)}><DeleteOutlineIcon /></IconButton>
+                    )}
                   </TableCell>
-                }
+                )}
               </TableRow>)}
-            {filtered.length === 0 && <TableRow><TableCell colSpan={5} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum usuário encontrado.</TableCell></TableRow>}
+            {filtered.length === 0 && <TableRow><TableCell colSpan={canManage ? 5 : 4} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhum usuário encontrado.</TableCell></TableRow>}
           </TableBody></Table></TableContainer>}
     </Paper>
 
@@ -136,7 +142,7 @@ export default function UsersPage() {
           <TextField select label="Setor" value={form.sectorId} onChange={e => field("sectorId", Number(e.target.value))} required>{sectors.map(sector => <MenuItem key={sector.id} value={sector.id}>{sector.name}</MenuItem>)}</TextField>
           <TextField label={editing ? "Nova senha (opcional)" : "Senha"} value={form.password} onChange={e => field("password", e.target.value)} type="password" required={!editing} helperText={editing ? "Deixe em branco para manter a senha atual" : "Mínimo de 6 caracteres"} />
           <TextField select label="Perfil" value={form.perfil} onChange={e => { const perfil = e.target.value as Perfil; setForm(current => ({ ...current, perfil, admin: perfil === "ADMIN" })); }}>
-            {(Object.keys(perfilLabel) as Perfil[]).map(perfil => <MenuItem key={perfil} value={perfil}>{perfilLabel[perfil]}</MenuItem>)}
+            {(Object.keys(perfilLabel) as Perfil[]).filter(p => isAdmin || p !== "ADMIN").map(perfil => <MenuItem key={perfil} value={perfil}>{perfilLabel[perfil]}</MenuItem>)}
           </TextField>
         </Stack>
       </DialogContent>
