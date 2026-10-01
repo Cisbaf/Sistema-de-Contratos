@@ -8,6 +8,7 @@ import contratos.domain.DocumentTemplate;
 import contratos.domain.GeneratedDocument;
 import contratos.domain.LancamentoFinanceiro;
 import contratos.domain.Sector;
+import contratos.domain.enums.AttachmentType;
 import contratos.domain.enums.DocumentFormat;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.domain.enums.PerfilUsuario;
@@ -127,7 +128,7 @@ class RbacMatrixIntegrationTest {
         lancamentoId = lancamentos.save(new LancamentoFinanceiro("PROC-1", "NF-1", LocalDate.of(2026, 2, 1), "1",
                 new BigDecimal("10.00"), "obs", contract, admin)).getId();
         attachmentId = attachments.save(new ContractAttachment(contract, "doc.pdf", "application/pdf", 8,
-                "%PDF-1.4".getBytes(), admin)).getId();
+                "%PDF-1.4".getBytes(), AttachmentType.GERAL,admin)).getId();
         documentId = documents.save(new GeneratedDocument("gerado.pdf", 1, "%PDF-1.4".getBytes(),
                 LocalDateTime.now(), admin, DocumentFormat.PDF, DocumentTemplateType.TECHNICAL_OPINION, contract)).getId();
         templateId = templates.findAll().stream().findFirst()

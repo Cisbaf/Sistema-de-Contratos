@@ -3,6 +3,7 @@ package contratos.service;
 import contratos.api.dto.ContractAttachment.ContractAttachmentFile;
 import contratos.api.dto.ContractAttachment.ContractAttachmentResponse;
 import contratos.domain.ContractAttachment;
+import contratos.domain.enums.AttachmentType;
 import contratos.repository.ContractAttachmentRepository;
 import contratos.repository.ContractRepository;
 import contratos.repository.UserRepository;
@@ -75,7 +76,7 @@ public class ContractAttachmentService {
             }
             var contem = file.getOriginalFilename().toLowerCase();
             if (contem.endsWith(".pdf") || contem.endsWith(".doc") || contem.endsWith(".docx")) {
-                var contractAttachments = new ContractAttachment(contract, file.getOriginalFilename(), file.getContentType(), file.getSize(), file.getBytes(), user);
+                var contractAttachments = new ContractAttachment(contract, file.getOriginalFilename(), file.getContentType(), file.getSize(), file.getBytes(), AttachmentType.GERAL, user);
                 attachments.add(contractAttachments);
             } else {
                 throw new IllegalArgumentException("Apenas arquivos pdf, doc e docx são permitidos");
@@ -135,7 +136,8 @@ public class ContractAttachmentService {
                 EntityMapper.user(attachment.getUploadedBy()),
                 attachment.isAtivo(),
                 attachment.getRemovedAt(),
-                removedBy == null ? null : EntityMapper.user(removedBy)
+                removedBy == null ? null : EntityMapper.user(removedBy),
+                attachment.getAttType()
         );
     }
 

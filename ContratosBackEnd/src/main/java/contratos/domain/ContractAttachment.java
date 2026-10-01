@@ -1,5 +1,6 @@
 package contratos.domain;
 
+import contratos.domain.enums.AttachmentType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,9 @@ public class ContractAttachment {
     private long sizeBytes;
     @Column(nullable = false, columnDefinition = "LONGBLOB")
     private byte[] content;
+    @Enumerated(value = EnumType.STRING)
+    @Column(columnDefinition = "VARCHAR(20) NOT NULL DEFAULT 'GERAL'", nullable = false)
+    private AttachmentType attType;
     @Column(nullable = false)
     private LocalDateTime uploadedAt;
     @ManyToOne(fetch = FetchType.LAZY)
@@ -36,12 +40,13 @@ public class ContractAttachment {
     @ManyToOne(fetch = FetchType.LAZY)
     private AppUser removedBy;
 
-    public ContractAttachment(Contract contract, String fileName, String contentType, long sizeBytes, byte[] content,
+    public ContractAttachment(Contract contract, String fileName, String contentType, long sizeBytes, byte[] content, AttachmentType attType,
                               AppUser uploadedBy) {
         this.contract = contract;
         this.fileName = fileName;
         this.contentType = contentType;
         this.sizeBytes = sizeBytes;
+        this.attType = attType;
         this.content = content;
         this.uploadedAt = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         this.uploadedBy = uploadedBy;
