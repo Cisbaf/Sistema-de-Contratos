@@ -1,6 +1,8 @@
 package contratos.security;
 
 import contratos.repository.ContractRepository;
+import jakarta.persistence.EntityNotFoundException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,6 +49,12 @@ public class ContractAuthorization {
         return authentication.getAuthorities().stream()
                 .anyMatch(authority -> Objects.equals(authority.getAuthority(), "ROLE_ADMIN")
                         || Objects.equals(authority.getAuthority(), "ROLE_CONTROLE_INTERNO"));
+    }
+
+    public RuntimeException notFoundOrForbidden(Authentication authentication, String notFoundMessage) {
+        return isAdminControle(authentication)
+                ? new EntityNotFoundException(notFoundMessage)
+                : new AccessDeniedException("Usuário não tem permissão para esta operação");
     }
 
 }

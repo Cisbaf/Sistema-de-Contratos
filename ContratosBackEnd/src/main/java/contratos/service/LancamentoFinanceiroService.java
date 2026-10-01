@@ -183,7 +183,8 @@ public class LancamentoFinanceiroService {
         // Trava o lançamento e depois o contrato (sempre nessa ordem, para não gerar deadlock) ANTES de ler
         // o saldo: o valor antigo e a soma dos outros lançamentos precisam estar atualizados.
         LancamentoFinanceiro lancamento = repository.findByIdForUpdate(lancamentoId)
-                .orElseThrow(() -> new EntityNotFoundException("Lançamento não encontrado com o id: " + lancamentoId));
+                .orElseThrow(() -> authorization.notFoundOrForbidden(authentication,
+                        "Lançamento não encontrado com o id: " + lancamentoId));
         bloquearContrato(lancamento.getContrato().getId());
         if (!authorization.canRead(lancamento.getContrato().getId(), authentication)) {
             throw new AccessDeniedException("Usuário não tem permissão para alterar este lançamento");

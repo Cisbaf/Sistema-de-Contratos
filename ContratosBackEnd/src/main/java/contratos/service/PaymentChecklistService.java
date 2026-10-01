@@ -97,7 +97,9 @@ public class PaymentChecklistService {
     /** Mesma regra de editar/excluir: autoriza pelo contrato do lançamento antes de olhar o estado dele. */
     private LancamentoFinanceiro buscarLancamentoAtivo(Long lancamentoId, Authentication authentication) {
         LancamentoFinanceiro lancamento = lancamentoRepository.findById(lancamentoId)
-                .orElseThrow(() -> new EntityNotFoundException("Lançamento não encontrado com o id: " + lancamentoId));
+                .orElseThrow(() -> authorization.notFoundOrForbidden(authentication,
+                        "Lançamento não encontrado com o id: " + lancamentoId));
+
         if (!authorization.canRead(lancamento.getContrato().getId(), authentication)) {
             throw new AccessDeniedException("Usuário não tem permissão para gerar o ateste deste lançamento");
         }

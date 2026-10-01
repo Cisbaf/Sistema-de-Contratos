@@ -89,7 +89,9 @@ public class GeneratedDocumentService {
 
     @Transactional(readOnly = true)
     public GeneratedDocumentFile downloadContent(Long documentId, Authentication authentication) {
-        var document = repository.findById(documentId).orElseThrow(() -> new EntityNotFoundException("Documento não encontrado com o id: " + documentId));
+        var document = repository.findById(documentId)
+                .orElseThrow(() -> authorization.notFoundOrForbidden(authentication,
+                        "Documento não encontrado com o id: " + documentId));
         if (!authorization.canRead(document.getContract().getId(), authentication)) {
             throw new AccessDeniedException("Usuário não tem permissão para baixar o arquivo");
         }

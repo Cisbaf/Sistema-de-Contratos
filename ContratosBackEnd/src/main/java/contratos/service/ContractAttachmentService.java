@@ -105,7 +105,9 @@ public class ContractAttachmentService {
         if (attachmentId == null) {
             throw new IllegalArgumentException("O id do arquivo não pode ser nullo");
         }
-        var attachment = attachmentRepository.findById(attachmentId).orElseThrow(() -> new EntityNotFoundException("Não existe arquivo atrelado ao id: " + attachmentId));
+        var attachment = attachmentRepository.findById(attachmentId)
+                .orElseThrow(() -> contractAuthorization.notFoundOrForbidden(authentication,
+                        "Não existe arquivo atrelado ao id: " + attachmentId));
 
         if (!contractAuthorization.canRead(attachment.getContract().getId(), authentication)) {
             throw new AccessDeniedException("O usuário não tem autorização para realizar essa operação");
