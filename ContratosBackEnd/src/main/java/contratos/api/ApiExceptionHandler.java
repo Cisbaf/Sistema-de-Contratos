@@ -6,6 +6,7 @@ import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -46,6 +47,10 @@ public class ApiExceptionHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<ApiErrorResponse> badRequest(IllegalArgumentException exception) {
         return response(HttpStatus.BAD_REQUEST, exception.getMessage());
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    ResponseEntity<ApiErrorResponse> badMessageRequest() {
+        return response(HttpStatus.BAD_REQUEST, "Corpo da requisição ausente ou malformado");
     }
 
     @ExceptionHandler(BadCredentialsException.class)
