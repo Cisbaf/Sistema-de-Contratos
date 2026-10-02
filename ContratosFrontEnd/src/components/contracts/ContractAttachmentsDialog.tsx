@@ -2,52 +2,19 @@
 
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { deleteJson, downloadFile, getJson, postForm } from "@/lib/api";
+import { ALLOWED_EXTENSIONS, MAX_FILES, MAX_PER_CONTRACT, tamanho, validarArquivos } from "@/lib/attachments";
 import type { Contract, ContractAttachment } from "@/types";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
     Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-    DialogTitle, IconButton, List, ListItem, ListItemText, Stack, Tooltip, Typography,
+    Chip, DialogTitle, IconButton, List, ListItem, ListItemText, Stack, Tooltip, Typography,
 } from "@mui/material";
 import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 
-// Espelham as regras do backend (ContractAttachmentService + application.properties).
-// O backend continua sendo a garantia; aqui é só para avisar antes de enviar.
-const MAX_FILES = 5;
-const MAX_PER_CONTRACT = 10;
-const MAX_FILE_BYTES = 30 * 1024 * 1024;
-const MAX_TOTAL_BYTES = 90 * 1024 * 1024;
-const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
-
 const dataHora = (value: string) =>
     new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
-
-function tamanho(bytes: number) {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function validarArquivos(files: File[], jaAnexados: number): string | null {
-    if (files.length > MAX_FILES) return `Selecione no máximo ${MAX_FILES} arquivos por vez.`;
-    if (jaAnexados + files.length > MAX_PER_CONTRACT) {
-        const vagas = Math.max(0, MAX_PER_CONTRACT - jaAnexados);
-        return `Limite de ${MAX_PER_CONTRACT} anexos por contrato. Este contrato já tem ${jaAnexados} e comporta mais ${vagas}.`;
-    }
-    for (const file of files) {
-        const name = file.name.toLowerCase();
-        if (!ALLOWED_EXTENSIONS.some(ext => name.endsWith(ext))) {
-            return `"${file.name}": apenas arquivos PDF, DOC e DOCX são permitidos.`;
-        }
-        if (file.size === 0) return `"${file.name}" está vazio.`;
-        if (file.size > MAX_FILE_BYTES) return `"${file.name}" passa de ${tamanho(MAX_FILE_BYTES)}.`;
-    }
-    if (files.reduce((sum, file) => sum + file.size, 0) > MAX_TOTAL_BYTES) {
-        return `O total dos arquivos passa de ${tamanho(MAX_TOTAL_BYTES)}.`;
-    }
-    return null;
-}
 
 export default function ContractAttachmentsDialog({ open, contract, canManage, onClose }: {
     open: boolean;
@@ -197,7 +164,12 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
                                 >
                                     <ListItemText
                                         sx={{ wordBreak: "break-word" }}
-                                        primary={item.fileName}
+                                        primary={<>
+                                            {item.fileName}
+                                            {item.attType === "TERMO_ADITIVO" && (
+                                                <Chip label="Termo Aditivo" size="small" color="secondary" sx={{ ml: 1 }} />
+                                            )}
+                                        </>}
                                         secondary={`${tamanho(item.sizeBytes)} · ${item.uploadedBy.name} · ${dataHora(item.uploadedAt)}`}
                                     />
                                 </ListItem>

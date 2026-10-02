@@ -61,6 +61,8 @@ export interface GeneratedDocument {
   generatedAt: string;
 }
 
+export type AttachmentType = "GERAL" | "TERMO_ADITIVO";
+
 export interface ContractAttachment {
   id: number;
   fileName: string;
@@ -71,6 +73,7 @@ export interface ContractAttachment {
   ativo: boolean;
   removedAt: string | null;
   removedBy: User | null;
+  attType: AttachmentType;
 }
 
 export interface Lancamento {

@@ -1,6 +1,7 @@
 "use client";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
+import AmendmentDialog from "@/components/contracts/AmendmentDialog";
 import ContractAttachmentsDialog from "@/components/contracts/ContractAttachmentsDialog";
 import ContractDetailsDrawer from "@/components/contracts/ContractDetailsDrawer";
 import ContractFinancialDrawer from "@/components/contracts/ContractFinancialDrawer";
@@ -52,6 +53,7 @@ export default function ContractsPage() {
   const [emailContract, setEmailContract] = useState<Contract | null>(null);
   const [opinionContract, setOpinionContract] = useState<Contract | null>(null);
   const [maskContract, setMaskContract] = useState<Contract | null>(null);
+  const [amendmentContract, setAmendmentContract] = useState<Contract | null>(null);
   const [documentsContract, setDocumentsContract] = useState<Contract | null>(null);
   const [attachmentsContract, setAttachmentsContract] = useState<Contract | null>(null);
   const [financialContract, setFinancialContract] = useState<Contract | null>(null);
@@ -313,14 +315,26 @@ export default function ContractsPage() {
       open={detailsOpen}
       contract={detailsContract}
       status={detailsContract ? contractStatusPresentation[detailsContract.status] : null}
+      canManage={canManageContracts}
       onClose={() => setDetailsOpen(false)}
       onEmail={setEmailContract}
       onOpinion={setOpinionContract}
       onMask={setMaskContract}
+      onAmendment={setAmendmentContract}
       onDocuments={setDocumentsContract}
       onAttachments={setAttachmentsContract}
       onFinancial={setFinancialContract}
       onNotifications={setNotificationsContract}
+    />
+    <AmendmentDialog
+      open={Boolean(amendmentContract)}
+      contract={amendmentContract}
+      onClose={() => setAmendmentContract(null)}
+      onRegistered={() => {
+        setAmendmentContract(null);
+        setFeedback({ message: "Termo Aditivo registrado. O contrato voltou para Em vigência.", error: false });
+        void load();
+      }}
     />
     <ContractFinancialDrawer
       open={Boolean(financialContract)}

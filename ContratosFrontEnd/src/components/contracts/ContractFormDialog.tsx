@@ -37,6 +37,9 @@ type ContractFormDialogProps = {
 
 const today = () => new Date().toISOString().slice(0, 10);
 
+// O TA é guardado só como número ("1", "2"; legado "03"): "03" precisa virar "3" para casar com a opção do select.
+const normalizeTa = (ta: string | null) => (!ta ? "" : /^\d+$/.test(ta) ? String(Number(ta)) : ta);
+
 const emptyForm = (): ContractFormState => ({
     numberContract: "",
     numberProcess: "",
@@ -83,7 +86,7 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
             startDate: contract.startDate,
             endDate: contract.endDate,
             font: contract.font ?? "",
-            ta: contract.ta ?? "",
+            ta: normalizeTa(contract.ta),
             fiscalIds: contract.fiscais.map(fiscais => fiscais.id),
             seiProcessNumber: contract.seiProcessNumber,
             maxExtensionMonths: contract.maxExtensionMonths !== null ? String(contract.maxExtensionMonths) : null
@@ -181,7 +184,10 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
                         />
                         <TextField select label="Termo aditivo" value={form.ta} onChange={e => field("ta", e.target.value)}>
                             <MenuItem value="">Sem TA</MenuItem>
-                            {[1, 2, 3, 4, 5, 6].map(value => <MenuItem key={value} value={String(value)}>TA {value}</MenuItem>)}
+                            {/* Cada Termo Aditivo registrado aumenta o número; o select cresce junto e nunca esconde o valor atual. */}
+                            {Array.from({ length: Math.max(10, Number(form.ta) || 0) }, (_, index) => index + 1)
+                                .map(value => <MenuItem key={value} value={String(value)}>TA {value}</MenuItem>)}
+                            {form.ta && !/^\d+$/.test(form.ta) && <MenuItem value={form.ta}>{form.ta}</MenuItem>}
                         </TextField>
 
                         <TextField label="Fonte de recurso" value={form.font} onChange={e => field("font", e.target.value)} sx={{ gridColumn: { sm: "span 2" } }} />

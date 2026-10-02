@@ -4,7 +4,7 @@ import { formatCnpj } from "@/lib/formatters";
 import type { Contract } from "@/types";
 import {
     AttachFileOutlined, DescriptionOutlined, EmailOutlined, FolderOutlined, NotificationsOutlined,
-    PaymentsOutlined, PersonOutlineOutlined,
+    NoteAddOutlined, PaymentsOutlined, PersonOutlineOutlined,
 } from "@mui/icons-material";
 import CloseIcon from "@mui/icons-material/Close";
 import {
@@ -41,15 +41,17 @@ function Acao({ icon, titulo, disabledHint, disabled, onClick }: {
 }
 
 export default function ContractDetailsDrawer({
-    open, contract, status, onClose, onEmail, onOpinion, onMask, onDocuments, onAttachments, onFinancial, onNotifications,
+    open, contract, status, canManage, onClose, onEmail, onOpinion, onMask, onAmendment, onDocuments, onAttachments, onFinancial, onNotifications,
 }: {
     open: boolean;
     contract: Contract | null;
     status: { label: string; color: ChipProps["color"] } | null;
+    canManage: boolean;
     onClose: () => void;
     onEmail: (contract: Contract) => void;
     onOpinion: (contract: Contract) => void;
     onMask: (contract: Contract) => void;
+    onAmendment: (contract: Contract) => void;
     onDocuments: (contract: Contract) => void;
     onAttachments: (contract: Contract) => void;
     onFinancial: (contract: Contract) => void;
@@ -136,6 +138,15 @@ export default function ContractDetailsDrawer({
                         disabledHint="Disponível a partir do início da renovação."
                         onClick={() => onMask(contract)}
                     />
+                    {canManage && (
+                        <Acao
+                            icon={<NoteAddOutlined />}
+                            titulo="Registrar Termo Aditivo"
+                            disabled={contract.status !== "RENOVACAO_ABERTA_SEI"}
+                            disabledHint="Disponível quando a renovação estiver aberta no SEI."
+                            onClick={() => onAmendment(contract)}
+                        />
+                    )}
                     <Acao
                         icon={<FolderOutlined />}
                         titulo="Documentos gerados"
