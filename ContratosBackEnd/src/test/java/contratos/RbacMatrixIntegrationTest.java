@@ -253,6 +253,9 @@ class RbacMatrixIntegrationTest {
             c("GET /attachment/time_line/{contractId}", t -> get("/api/attachment/time_line/" + t.contractId), ACF),
             c("POST /attachment/{contractId}", t -> multipart("/api/attachment/" + t.contractId)
                     .file(new MockMultipartFile("files", "a.pdf", "application/pdf", "%PDF-1.4 x".getBytes())), AC),
+            c("POST /contracts/{id}/amendments", t -> multipart("/api/contracts/" + t.contractId + "/amendments")
+                    .file(new MockMultipartFile("file", "aditivo.pdf", "application/pdf", "%PDF-1.4 x".getBytes()))
+                    .param("newEndDate", "2027-03-01"), AC),
             c("GET /attachment/baixar/{attId}", t -> get("/api/attachment/baixar/" + t.attachmentId), ACF),
             c("DELETE /attachment/{attId}", t -> delete("/api/attachment/" + t.attachmentId), AC),
             // ---- documentos gerados
@@ -310,8 +313,8 @@ class RbacMatrixIntegrationTest {
 
     @Test
     void matrizCobreTodosOsEndpointsEsperados() {
-        // trava contra "esquecer" uma linha ao editar a matriz: 47 endpoints protegidos x 5 perfis
-        assertThat(cases()).hasSize(47);
+        // trava contra "esquecer" uma linha ao editar a matriz: 48 endpoints protegidos x 5 perfis
+        assertThat(cases()).hasSize(48);
         assertThat(cases().stream().map(Case::name)).doesNotHaveDuplicates();
     }
 

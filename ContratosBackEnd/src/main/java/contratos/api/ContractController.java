@@ -6,18 +6,24 @@ import contratos.api.dto.InterestEmail.InterestEmailConfirmResponse;
 import contratos.api.dto.InterestEmail.InterestEmailPreviewResponse;
 import contratos.api.dto.TechnicalOpinion.TextPayload;
 import contratos.domain.AppUser;
+import contratos.service.ContractAmendmentService;
 import contratos.service.ContractService;
 import contratos.service.InterestEmailConfirmationService;
 import contratos.service.SupplierMaskService;
 import contratos.service.TechnicalOpinionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -25,6 +31,7 @@ import java.util.List;
 @RequestMapping("/api/contracts")
 public class ContractController {
     private final ContractService service;
+    private final ContractAmendmentService amendmentService;
     private final InterestEmailConfirmationService confirmationService;
     private final TechnicalOpinionService technicalOpinionService;
     private final SupplierMaskService supplierMaskService;
@@ -82,6 +89,17 @@ public class ContractController {
         AppUser actor = (AppUser) authentication.getPrincipal();
         service.delete(id, actor);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(value = "/{id}/amendments", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@contractAuthorization.isAdminControle(authentication)")
+    public ResponseEntity<ContractResponse> registerAmendment(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("newEndDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate newEndDate,
+            Authentication authentication) throws IOException {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+        return ResponseEntity.ok(amendmentService.register(id, file, newEndDate, actor));
     }
 
     @PostMapping("/{id}/technical-opinion/preview")

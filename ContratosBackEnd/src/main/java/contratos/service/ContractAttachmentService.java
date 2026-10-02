@@ -2,6 +2,8 @@ package contratos.service;
 
 import contratos.api.dto.ContractAttachment.ContractAttachmentFile;
 import contratos.api.dto.ContractAttachment.ContractAttachmentResponse;
+import contratos.domain.AppUser;
+import contratos.domain.Contract;
 import contratos.domain.ContractAttachment;
 import contratos.domain.enums.AttachmentType;
 import contratos.repository.ContractAttachmentRepository;
@@ -10,6 +12,7 @@ import contratos.repository.UserRepository;
 import contratos.security.ContractAuthorization;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -64,6 +67,13 @@ public class ContractAttachmentService {
         }
         var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Não existe usuário com o nome: " + username));
 
+        List<ContractAttachment> attachments = buildAttachment(files, contract, user, AttachmentType.GERAL);
+
+        return attachmentRepository.saveAll(attachments).stream().map(this::mapAttachmentResponse).toList();
+    }
+
+    /** Valida e monta os anexos (vazio/quebrado, nome, extensão). Compartilhado pelo upload comum (GERAL) e pelo Termo Aditivo (TERMO_ADITIVO). */
+    static @NonNull List<ContractAttachment> buildAttachment(List<MultipartFile> files, Contract contract, AppUser user, AttachmentType type) throws IOException {
         List<ContractAttachment> attachments = new ArrayList<>();
 
         for (MultipartFile file : files) {
@@ -76,14 +86,14 @@ public class ContractAttachmentService {
             }
             var contem = file.getOriginalFilename().toLowerCase();
             if (contem.endsWith(".pdf") || contem.endsWith(".doc") || contem.endsWith(".docx")) {
-                var contractAttachments = new ContractAttachment(contract, file.getOriginalFilename(), file.getContentType(), file.getSize(), file.getBytes(), AttachmentType.GERAL, user);
+                var contractAttachments = new ContractAttachment(contract, file.getOriginalFilename(), file.getContentType(), file.getSize(), file.getBytes(), type, user);
                 attachments.add(contractAttachments);
             } else {
                 throw new IllegalArgumentException("Apenas arquivos pdf, doc e docx são permitidos");
             }
 
         }
-        return attachmentRepository.saveAll(attachments).stream().map(this::mapAttachmentResponse).toList();
+        return attachments;
     }
 
     @Transactional
