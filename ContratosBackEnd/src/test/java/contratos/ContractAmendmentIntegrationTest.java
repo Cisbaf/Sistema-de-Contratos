@@ -100,7 +100,7 @@ class ContractAmendmentIntegrationTest {
 
     @Test
     void controleInternoRegistraEOContratoVoltaAVigenciaComTudoGravado() throws Exception {
-        Long id = contractInRenewal("TA 03", 12);
+        Long id = contractInRenewal("03", 12);
         interests.save(new InterestEmailConfirmation(contracts.findById(id).orElseThrow(), fiscal, LocalDateTime.now()));
         opinions.save(new TechnicalOpinionEntry(contracts.findById(id).orElseThrow(), fiscal, "parecer do ciclo anterior"));
 
@@ -110,12 +110,12 @@ class ContractAmendmentIntegrationTest {
         String json = response.getContentAsString();
         assertThat((String) JsonPath.read(json, "$.status")).isEqualTo("EM_VIGENCIA");
         assertThat((String) JsonPath.read(json, "$.endDate")).isEqualTo("2027-06-01");
-        assertThat((String) JsonPath.read(json, "$.ta")).isEqualTo("TA 4");
+        assertThat((String) JsonPath.read(json, "$.ta")).isEqualTo("4");
 
         Contract c = contracts.findById(id).orElseThrow();
         assertThat(c.getStatus()).isEqualTo(ContractStatus.EM_VIGENCIA);
         assertThat(c.getEndDate()).isEqualTo(LocalDate.of(2027, 6, 1));
-        assertThat(c.getTa()).isEqualTo("TA 4");
+        assertThat(c.getTa()).isEqualTo("4");
 
         List<ContractAttachment> anexos = attachments.findByContract_IdOrderByUploadedAtAsc(id);
         assertThat(anexos).hasSize(1);
@@ -145,7 +145,7 @@ class ContractAmendmentIntegrationTest {
         assertThat(logs.get(0).getDetails())
                 .contains("Término da vigência: 2026-12-01 -> 2027-06-01")
                 .contains("Status: RENOVACAO_ABERTA_SEI -> EM_VIGENCIA")
-                .contains("TA: TA 03 -> TA 4")
+                .contains("TA: 03 -> 4")
                 .contains("aditivo.pdf");
     }
 
@@ -156,19 +156,19 @@ class ContractAmendmentIntegrationTest {
         MockHttpServletResponse response = send(id, admin, pdf("aditivo.pdf"), "2027-03-01");
 
         assertThat(response.getStatus()).isEqualTo(200);
-        assertThat(contracts.findById(id).orElseThrow().getTa()).isEqualTo("TA 1");
+        assertThat(contracts.findById(id).orElseThrow().getTa()).isEqualTo("1");
     }
 
     @Test
     void dataNoLimiteExatoDaProrrogacaoEAceita() throws Exception {
-        Long id = contractInRenewal("TA 1", 12); // limite = 01/12/2027
+        Long id = contractInRenewal("1", 12); // limite = 01/12/2027
 
         assertThat(send(id, ci, pdf("a.pdf"), "2027-12-01").getStatus()).isEqualTo(200);
     }
 
     @Test
     void semLimiteDeProrrogacaoQualquerDataFuturaMaiorEAceita() throws Exception {
-        Long id = contractInRenewal("TA 1", null);
+        Long id = contractInRenewal("1", null);
 
         assertThat(send(id, ci, pdf("a.pdf"), "2035-01-01").getStatus()).isEqualTo(200);
         assertThat(contracts.findById(id).orElseThrow().getEndDate()).isEqualTo(LocalDate.of(2035, 1, 1));
@@ -176,7 +176,7 @@ class ContractAmendmentIntegrationTest {
 
     @Test
     void depoisDoAditivoOFiscalConfirmaInteresseDeNovoENoSegundoAditivoOTaSegue() throws Exception {
-        Long id = contractInRenewal("TA 03", null);
+        Long id = contractInRenewal("03", null);
         interests.save(new InterestEmailConfirmation(contracts.findById(id).orElseThrow(), fiscal, LocalDateTime.now()));
 
         assertThat(send(id, ci, pdf("um.pdf"), "2027-06-01").getStatus()).isEqualTo(200);
@@ -196,7 +196,7 @@ class ContractAmendmentIntegrationTest {
         MockHttpServletResponse second = send(id, ci, pdf("dois.pdf"), "2028-06-01");
 
         assertThat(second.getStatus()).isEqualTo(200);
-        assertThat((String) JsonPath.read(second.getContentAsString(), "$.ta")).isEqualTo("TA 5");
+        assertThat((String) JsonPath.read(second.getContentAsString(), "$.ta")).isEqualTo("5");
         assertThat(attachments.countByContract_IdAndAttType(id, AttachmentType.TERMO_ADITIVO)).isEqualTo(2);
     }
 
@@ -204,7 +204,7 @@ class ContractAmendmentIntegrationTest {
 
     @Test
     void fiscalVinculadoELeituraSemTokenNaoRegistram() throws Exception {
-        Long id = contractInRenewal("TA 1", 12);
+        Long id = contractInRenewal("1", 12);
 
         assertThat(send(id, fiscal, pdf("a.pdf"), "2027-03-01").getStatus()).isEqualTo(403);
         assertThat(send(id, outroFiscal, pdf("a.pdf"), "2027-03-01").getStatus()).isEqualTo(403);
@@ -218,9 +218,9 @@ class ContractAmendmentIntegrationTest {
 
     @Test
     void foraDeRenovacaoResponde409ENadaMuda() throws Exception {
-        Long id = contractInRenewal("TA 1", 12);
+        Long id = contractInRenewal("1", 12);
         tx.executeWithoutResult(s -> contracts.findById(id).orElseThrow()
-                .registerAmendment(END, "TA 1")); // volta a EM_VIGENCIA sem passar pelo serviço
+                .registerAmendment(END, "1")); // volta a EM_VIGENCIA sem passar pelo serviço
 
         MockHttpServletResponse response = send(id, ci, pdf("a.pdf"), "2027-03-01");
 
@@ -237,7 +237,7 @@ class ContractAmendmentIntegrationTest {
 
     @Test
     void dataIgualOuAnteriorAAtualResponde400() throws Exception {
-        Long id = contractInRenewal("TA 1", 12);
+        Long id = contractInRenewal("1", 12);
 
         MockHttpServletResponse igual = send(id, ci, pdf("a.pdf"), "2026-12-01");
         MockHttpServletResponse anterior = send(id, ci, pdf("a.pdf"), "2026-11-30");
@@ -245,32 +245,32 @@ class ContractAmendmentIntegrationTest {
         assertThat(igual.getStatus()).isEqualTo(400);
         assertThat(igual.getContentAsString()).contains("posterior à atual").contains("01/12/2026");
         assertThat(anterior.getStatus()).isEqualTo(400);
-        assertUntouched(id, "TA 1");
+        assertUntouched(id, "1");
     }
 
     @Test
     void dataAcimaDoLimiteResponde400ComALimiteNaMensagem() throws Exception {
-        Long id = contractInRenewal("TA 1", 12); // limite = 01/12/2027
+        Long id = contractInRenewal("1", 12); // limite = 01/12/2027
 
         MockHttpServletResponse response = send(id, ci, pdf("a.pdf"), "2027-12-02");
 
         assertThat(response.getStatus()).isEqualTo(400);
         assertThat(response.getContentAsString()).contains("01/12/2027").contains("12 meses");
-        assertUntouched(id, "TA 1");
+        assertUntouched(id, "1");
     }
 
     @Test
     void dataAusenteOuMalFormadaResponde400() throws Exception {
-        Long id = contractInRenewal("TA 1", 12);
+        Long id = contractInRenewal("1", 12);
 
         assertThat(send(id, ci, pdf("a.pdf"), null).getStatus()).isEqualTo(400);
         assertThat(send(id, ci, pdf("a.pdf"), "01/03/2027").getStatus()).isEqualTo(400);
-        assertUntouched(id, "TA 1");
+        assertUntouched(id, "1");
     }
 
     @Test
     void arquivoAusenteVazioOuDeTipoErradoResponde400ENadaMuda() throws Exception {
-        Long id = contractInRenewal("TA 1", 12);
+        Long id = contractInRenewal("1", 12);
         interests.save(new InterestEmailConfirmation(contracts.findById(id).orElseThrow(), fiscal, LocalDateTime.now()));
 
         assertThat(send(id, ci, null, "2027-03-01").getStatus()).isEqualTo(400);
@@ -279,13 +279,13 @@ class ContractAmendmentIntegrationTest {
         assertThat(send(id, ci, new MockMultipartFile("file", "nota.txt", "text/plain", "oi".getBytes()),
                 "2027-03-01").getStatus()).isEqualTo(400);
 
-        assertUntouched(id, "TA 1");
+        assertUntouched(id, "1");
         assertThat(interests.findByContract_Id(id)).hasSize(1); // o reset só acontece se tudo deu certo
     }
 
     @Test
     void contratoCom10AnexosAtivosRecusaComMensagemClara() throws Exception {
-        Long id = contractInRenewal("TA 1", 12);
+        Long id = contractInRenewal("1", 12);
         Contract c = contracts.findById(id).orElseThrow();
         for (int i = 0; i < 10; i++) {
             attachments.save(new ContractAttachment(c, "comum" + i + ".pdf", "application/pdf", 8, PDF,

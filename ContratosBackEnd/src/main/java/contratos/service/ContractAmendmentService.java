@@ -118,8 +118,9 @@ public class ContractAmendmentService {
     }
 
     /**
-     * "TA N": N é o maior entre o número no fim do texto atual do campo (0 se vazio ou sem número) e a
-     * quantidade de aditivos já registrados, mais 1. Assim "TA 03" legado vira "TA 4" e contrato sem nada vira "TA 1".
+     * Número do próximo aditivo: o maior entre o número no fim do texto atual do campo "ta" (0 se vazio ou sem
+     * número) e a quantidade de aditivos já registrados, mais 1. O campo guarda só o número ("1", "2"...): a tela
+     * é quem escreve o prefixo "TA ". Assim "03" legado vira "4" e contrato sem nada vira "1".
      */
     static String nextTaLabel(String currentTa, long amendmentsSoFar) {
         long fromText = 0;
@@ -129,6 +130,6 @@ public class ContractAmendmentService {
                 fromText = Long.parseLong(matcher.group(1));
             }
         }
-        return "TA " + (Math.max(fromText, amendmentsSoFar) + 1);
+        return String.valueOf(Math.max(fromText, amendmentsSoFar) + 1);
     }
 }
