@@ -88,6 +88,21 @@ public class ContractStatusService {
         return true;
     }
 
+    @Transactional
+    public boolean advanceAfterAmendmentRegistered(Contract contract, AppUser user, LocalDate endDate, String ta) {
+        var previousStatus = contract.getStatus();
+        if (endDate == null || ta == null) return false;
+        var changed = contract.registerAmendment(endDate, ta);
+        if (!changed) return false;
+
+        repository.save(new ContractStatusHistory(
+                LocalDateTime.now(ZoneId.of("America/Sao_Paulo")),
+                user, contract, previousStatus, contract.getStatus(),
+                ContractStatusTrigger.ADITIVO_REGISTRADO
+        ));
+        return true;
+    }
+
     @Scheduled(
             cron = "${contracts.status-update-cron:0 0 1 * * *}",
             zone = "America/Sao_Paulo"

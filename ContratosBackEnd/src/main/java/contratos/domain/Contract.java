@@ -2,7 +2,8 @@ package contratos.domain;
 
 import contratos.domain.enums.ContractStatus;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -107,6 +108,14 @@ public class Contract {
     public boolean markTechnicalOpinionGenerated() {
         if (this.status != ContractStatus.EMAIL_ENVIADO) return false;
         this.status = ContractStatus.RENOVACAO_ABERTA_SEI;
+        return true;
+    }
+
+    public boolean registerAmendment(LocalDate newEndDate, String taLabel) {
+        if (this.status != ContractStatus.RENOVACAO_ABERTA_SEI) return false;
+        this.status = ContractStatus.EM_VIGENCIA;
+        this.endDate = newEndDate;
+        this.ta = taLabel;
         return true;
     }
 }
