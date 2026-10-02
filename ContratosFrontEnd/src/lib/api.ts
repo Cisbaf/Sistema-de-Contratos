@@ -51,5 +51,6 @@ export async function downloadFile(path: string, fallbackFileName: string): Prom
 export const getJson = <T,>(path: string) => apiRequest<T>(path, { cache: "no-store" });
 export const postJson = <T,>(path: string, body?: unknown) => apiRequest<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 export const postForm = <T,>(path: string, body: FormData) => apiRequest<T>(path, { method: "POST", body });
+export const putForm = (path: string, body: FormData) => apiRequest<void>(path, { method: "PUT", body });
 export const putJson = <T,>(path: string, body: unknown) => apiRequest<T>(path, { method: "PUT", body: JSON.stringify(body) });
 export const deleteJson = (path: string) => apiRequest<void>(path, { method: "DELETE" });

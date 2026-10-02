@@ -1,11 +1,12 @@
 "use client";
 
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { deleteJson, downloadFile, getJson, postForm } from "@/lib/api";
-import { ALLOWED_EXTENSIONS, MAX_FILES, MAX_PER_CONTRACT, tamanho, validarArquivos } from "@/lib/attachments";
+import { deleteJson, downloadFile, getJson, postForm, putForm } from "@/lib/api";
+import { ALLOWED_EXTENSIONS, MAX_FILES, MAX_PER_CONTRACT, tamanho, validarArquivo, validarArquivos } from "@/lib/attachments";
 import type { Contract, ContractAttachment } from "@/types";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DownloadIcon from "@mui/icons-material/Download";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
     Alert, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
@@ -28,7 +29,11 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [removing, setRemoving] = useState<ContractAttachment | null>(null);
+    const [replacing, setReplacing] = useState<{ item: ContractAttachment; file: File } | null>(null);
+    const [replacingBusy, setReplacingBusy] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const replaceInputRef = useRef<HTMLInputElement>(null);
+    const replaceTarget = useRef<ContractAttachment | null>(null);
 
     const carregar = useCallback(async () => {
         if (!contract) return;
@@ -75,6 +80,47 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
         }
     }
 
+    function escolherSubstituto(item: ContractAttachment) {
+        replaceTarget.current = item;
+        replaceInputRef.current?.click();
+    }
+
+    function arquivoSubstitutoEscolhido(event: ChangeEvent<HTMLInputElement>) {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+        const item = replaceTarget.current;
+        if (!file || !item) return;
+
+        setError("");
+        setSuccess("");
+        const problem = validarArquivo(file);
+        if (problem) {
+            setError(problem);
+            return;
+        }
+        setReplacing({ item, file }); // só envia depois da confirmação
+    }
+
+    async function substituir() {
+        if (!replacing || !contract) return;
+        const { item, file } = replacing;
+        setReplacingBusy(true);
+        setError("");
+        setSuccess("");
+        try {
+            const form = new FormData();
+            form.append("file", file);
+            await putForm(`/contracts/${contract.id}/amendments/${item.id}/file`, form);
+            setSuccess(`Documento do Termo Aditivo substituído por "${file.name}".`);
+            await carregar();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Erro ao substituir o documento");
+        } finally {
+            setReplacing(null);
+            setReplacingBusy(false);
+        }
+    }
+
     async function baixar(item: ContractAttachment) {
         setError("");
         try {
@@ -116,6 +162,13 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
                                 accept={ALLOWED_EXTENSIONS.join(",")}
                                 onChange={enviar}
                             />
+                            <input
+                                ref={replaceInputRef}
+                                type="file"
+                                hidden
+                                accept={ALLOWED_EXTENSIONS.join(",")}
+                                onChange={arquivoSubstitutoEscolhido}
+                            />
                             <Stack direction="row" spacing={2} alignItems="center">
                                 <Button
                                     variant="outlined"
@@ -152,7 +205,21 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
                                                     <DownloadIcon />
                                                 </IconButton>
                                             </Tooltip>
-                                            {canManage && (
+                                            {canManage && item.attType === "TERMO_ADITIVO" && (
+                                                <Tooltip title="Substituir documento (o Termo Aditivo não pode ser excluído)">
+                                                    <span>
+                                                        <IconButton
+                                                            color="primary"
+                                                            aria-label={`Substituir documento ${item.fileName}`}
+                                                            disabled={replacingBusy}
+                                                            onClick={() => escolherSubstituto(item)}
+                                                        >
+                                                            <SwapHorizIcon />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
+                                            )}
+                                            {canManage && item.attType !== "TERMO_ADITIVO" && (
                                                 <Tooltip title="Remover">
                                                     <IconButton color="error" aria-label={`Remover ${item.fileName}`} onClick={() => setRemoving(item)}>
                                                         <DeleteOutlineIcon />
@@ -192,6 +259,15 @@ export default function ContractAttachmentsDialog({ open, contract, canManage, o
                 confirmLabel="Remover"
                 onClose={() => setRemoving(null)}
                 onConfirm={remover}
+            />
+
+            <ConfirmDialog
+                open={Boolean(replacing)}
+                title="Substituir o documento do Termo Aditivo?"
+                text={`O arquivo "${replacing?.item.fileName ?? ""}" será apagado definitivamente e trocado por "${replacing?.file.name ?? ""}". A data de término, o status e o número do TA do contrato não mudam. Fica registrado na auditoria o nome do arquivo anterior e quem fez a troca. Essa ação não pode ser desfeita.`}
+                confirmLabel={replacingBusy ? "Substituindo..." : "Substituir"}
+                onClose={() => { if (!replacingBusy) setReplacing(null); }}
+                onConfirm={substituir}
             />
         </>
     );
