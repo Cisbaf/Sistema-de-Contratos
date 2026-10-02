@@ -6,6 +6,7 @@ import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.ContractAttachment;
 import contratos.domain.enums.AttachmentType;
+import contratos.exception.ConflictException;
 import contratos.repository.ContractAttachmentRepository;
 import contratos.repository.ContractRepository;
 import contratos.repository.UserRepository;
@@ -105,6 +106,11 @@ public class ContractAttachmentService {
         var attachment = attachmentRepository.findById(attachmentId).orElseThrow(() -> new EntityNotFoundException("Não existe arquivo atrelado ao id: " + attachmentId));
 
         if (!attachment.isAtivo()) return;
+
+        // O documento do Termo Aditivo é a prova da nova vigência: não se exclui, só se substitui (ver ContractAmendmentService).
+        if (attachment.getAttType() == AttachmentType.TERMO_ADITIVO) {
+            throw new ConflictException("O documento do Termo Aditivo não pode ser excluído. Use \"Substituir documento\" para trocá-lo.");
+        }
 
         var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Não existe usuário com o nome: " + username));
 

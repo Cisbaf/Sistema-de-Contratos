@@ -3,6 +3,7 @@ package contratos.service;
 import contratos.api.dto.Contract.ContractResponse;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
+import contratos.domain.ContractAttachment;
 import contratos.domain.enums.AttachmentType;
 import contratos.domain.enums.AuditAction;
 import contratos.domain.enums.AuditEntityType;
@@ -97,6 +98,39 @@ public class ContractAmendmentService {
                 "Termo Aditivo registrado no contrato " + contract.getNumberContract(), details);
 
         return EntityMapper.contract(contract, List.of());
+    }
+
+    /**
+     * Troca o arquivo do documento de um Termo Aditivo já registrado, em qualquer status do contrato, sem mexer
+     * no fluxo: data, status, "TA" e histórico de status ficam como estão. Sobrescreve a mesma linha do anexo;
+     * o nome do arquivo anterior fica na auditoria.
+     */
+    @Transactional
+    public void replaceDocument(Long contractId, Long attachmentId, MultipartFile file, AppUser actor) throws IOException {
+        ContractAttachment attachment = attachments.findById(attachmentId)
+                .filter(found -> found.getContract().getId().equals(contractId))
+                .orElseThrow(() -> new EntityNotFoundException("Não existe anexo com o id " + attachmentId + " neste contrato"));
+
+        if (attachment.getAttType() != AttachmentType.TERMO_ADITIVO || !attachment.isAtivo()) {
+            throw new ConflictException("Só o documento de um Termo Aditivo ativo pode ser substituído por aqui.");
+        }
+        if (file == null) {
+            throw new IllegalArgumentException("O novo documento do Termo Aditivo é obrigatório");
+        }
+
+        Contract contract = attachment.getContract();
+        ContractAttachment replacement = ContractAttachmentService
+                .buildAttachment(List.of(file), contract, actor, AttachmentType.TERMO_ADITIVO).get(0);
+
+        String previousName = attachment.getFileName();
+        attachment.replaceFile(replacement.getFileName(), replacement.getContentType(), replacement.getSizeBytes(),
+                replacement.getContent(), actor);
+
+        String details = new AuditChangeLog()
+                .note("Arquivo: " + previousName + " -> " + replacement.getFileName())
+                .build();
+        auditService.record(actor, AuditAction.UPDATE, AuditEntityType.CONTRACT, contract.getId(), contract.getId(),
+                "Documento do Termo Aditivo substituído no contrato " + contract.getNumberContract(), details);
     }
 
     private void validateNewEndDate(Contract contract, LocalDate newEndDate) {

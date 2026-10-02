@@ -36,6 +36,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
@@ -103,7 +104,7 @@ class RbacMatrixIntegrationTest {
     // Alvos de gestão de usuários
     private AppUser targetFiscal, targetAdmin;
     // Dados
-    private Long sectorId, contractId, otherContractId, lancamentoId, attachmentId, documentId, templateId;
+    private Long sectorId, contractId, otherContractId, lancamentoId, attachmentId, amendmentDocId, documentId, templateId;
     private static final long MISSING = 999_999L;
 
     @BeforeEach
@@ -129,6 +130,8 @@ class RbacMatrixIntegrationTest {
                 new BigDecimal("10.00"), "obs", contract, admin)).getId();
         attachmentId = attachments.save(new ContractAttachment(contract, "doc.pdf", "application/pdf", 8,
                 "%PDF-1.4".getBytes(), AttachmentType.GERAL,admin)).getId();
+        amendmentDocId = attachments.save(new ContractAttachment(contract, "aditivo.pdf", "application/pdf", 8,
+                "%PDF-1.4".getBytes(), AttachmentType.TERMO_ADITIVO, admin)).getId();
         documentId = documents.save(new GeneratedDocument("gerado.pdf", 1, "%PDF-1.4".getBytes(),
                 LocalDateTime.now(), admin, DocumentFormat.PDF, DocumentTemplateType.TECHNICAL_OPINION, contract)).getId();
         templateId = templates.findAll().stream().findFirst()
@@ -256,6 +259,8 @@ class RbacMatrixIntegrationTest {
             c("POST /contracts/{id}/amendments", t -> multipart("/api/contracts/" + t.contractId + "/amendments")
                     .file(new MockMultipartFile("file", "aditivo.pdf", "application/pdf", "%PDF-1.4 x".getBytes()))
                     .param("newEndDate", "2027-03-01"), AC),
+            c("PUT /contracts/{id}/amendments/{attId}/file", t -> multipart(HttpMethod.PUT, "/api/contracts/" + t.contractId + "/amendments/" + t.amendmentDocId + "/file")
+                    .file(new MockMultipartFile("file", "novo.pdf", "application/pdf", "%PDF-1.4 y".getBytes())), AC),
             c("GET /attachment/baixar/{attId}", t -> get("/api/attachment/baixar/" + t.attachmentId), ACF),
             c("DELETE /attachment/{attId}", t -> delete("/api/attachment/" + t.attachmentId), AC),
             // ---- documentos gerados
@@ -314,7 +319,7 @@ class RbacMatrixIntegrationTest {
     @Test
     void matrizCobreTodosOsEndpointsEsperados() {
         // trava contra "esquecer" uma linha ao editar a matriz: 48 endpoints protegidos x 5 perfis
-        assertThat(cases()).hasSize(48);
+        assertThat(cases()).hasSize(49);
         assertThat(cases().stream().map(Case::name)).doesNotHaveDuplicates();
     }
 

@@ -102,6 +102,18 @@ public class ContractController {
         return ResponseEntity.ok(amendmentService.register(id, file, newEndDate, actor));
     }
 
+    @PutMapping(value = "/{id}/amendments/{attachmentId}/file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@contractAuthorization.isAdminControle(authentication)")
+    public ResponseEntity<Void> replaceAmendmentDocument(
+            @PathVariable Long id,
+            @PathVariable Long attachmentId,
+            @RequestParam("file") MultipartFile file,
+            Authentication authentication) throws IOException {
+        AppUser actor = (AppUser) authentication.getPrincipal();
+        amendmentService.replaceDocument(id, attachmentId, file, actor);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/technical-opinion/preview")
     @PreAuthorize("@contractAuthorization.canRead(#id, authentication)")
     public ResponseEntity<TextPayload> previewTechnicalOpinion(

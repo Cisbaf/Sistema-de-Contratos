@@ -53,6 +53,23 @@ public class ContractAttachment {
     }
 
     /**
+     * Substituição do arquivo (usada no documento do Termo Aditivo): sobrescreve a mesma linha, sem criar outra, para
+     * não inflar a contagem de aditivos nem o limite de anexos. Quem enviou e quando passam a ser os da troca; o
+     * arquivo anterior só fica na auditoria (nome). Tipo, contrato e situação (ativo) não mudam.
+     */
+    public void replaceFile(String fileName, String contentType, long sizeBytes, byte[] content, AppUser user) {
+        if (!ativo) {
+            throw new IllegalStateException("Não é possível substituir um anexo removido");
+        }
+        this.fileName = fileName;
+        this.contentType = contentType;
+        this.sizeBytes = sizeBytes;
+        this.content = content;
+        this.uploadedAt = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
+        this.uploadedBy = user;
+    }
+
+    /**
      * Remoção lógica: mantém o registro (nome, tamanho original, quem enviou/removeu e quando)
      * para o histórico, mas descarta o conteúdo do arquivo para liberar espaço no banco.
      * A coluna é NOT NULL, então o conteúdo vira um array vazio em vez de null.
