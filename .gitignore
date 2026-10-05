@@ -623,3 +623,6 @@ corrigir_contratos_demo.sql
 Claude outputs
 MODULO_5_NOTIFICACOES_PLANO_GUIADO.md
 MODULO_6_ADMINISTRACAO_AUDITORIA_PLANO_GUIADO.md
+
+# Anexos dos contratos em disco (ANX-10): arquivos de dados, nunca vão para o Git.
+storage/
