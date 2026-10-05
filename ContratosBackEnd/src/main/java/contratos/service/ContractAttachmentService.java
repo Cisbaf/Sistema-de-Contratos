@@ -6,6 +6,7 @@ import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.ContractAttachment;
 import contratos.domain.enums.AttachmentType;
+import contratos.exception.AttachmentStorageException;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractAttachmentRepository;
 import contratos.repository.ContractRepository;
@@ -13,7 +14,7 @@ import contratos.repository.UserRepository;
 import contratos.security.ContractAuthorization;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.jspecify.annotations.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ContractAttachmentService {
@@ -34,6 +36,11 @@ public class ContractAttachmentService {
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
     private final ContractAuthorization contractAuthorization;
+    private final AttachmentStorage storage;
+
+    /** Arquivo que passou na validação (vazio/quebrado, nome, extensão), ainda não gravado em lugar nenhum. */
+    record ValidatedFile(String fileName, String contentType, long sizeBytes, byte[] content) {
+    }
 
     @Transactional(readOnly = true)
     public List<ContractAttachmentResponse> listarAtivos(Long contractId) {
@@ -59,7 +66,7 @@ public class ContractAttachmentService {
         }
         var contract = contractRepository.findById(contractId).orElseThrow(() -> new EntityNotFoundException("Não existe contrato atrelado ao id: " + contractId));
 
-        // Só anexos ativos contam: um anexo removido já teve o conteúdo apagado e libera a vaga.
+        // Só anexos ativos contam: um anexo removido já teve o arquivo apagado e libera a vaga.
         long ativos = attachmentRepository.countByContract_IdAndAtivoTrue(contractId);
         if (ativos + files.size() > MAX_ACTIVE_ATTACHMENTS_PER_CONTRACT) {
             long vagas = Math.max(0, MAX_ACTIVE_ATTACHMENTS_PER_CONTRACT - ativos);
@@ -68,14 +75,36 @@ public class ContractAttachmentService {
         }
         var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Não existe usuário com o nome: " + username));
 
-        List<ContractAttachment> attachments = buildAttachment(files, contract, user, AttachmentType.GERAL);
+        List<ContractAttachment> attachments = storeNew(files, contract, user, AttachmentType.GERAL);
 
         return attachmentRepository.saveAll(attachments).stream().map(this::mapAttachmentResponse).toList();
     }
 
-    /** Valida e monta os anexos (vazio/quebrado, nome, extensão). Compartilhado pelo upload comum (GERAL) e pelo Termo Aditivo (TERMO_ADITIVO). */
-    static @NonNull List<ContractAttachment> buildAttachment(List<MultipartFile> files, Contract contract, AppUser user, AttachmentType type) throws IOException {
+    /**
+     * Valida TODOS os arquivos (nenhum é gravado se algum for inválido), grava cada um em disco e monta os anexos
+     * (ainda não salvos no banco). Compartilhado pelo upload comum (GERAL) e pelo Termo Aditivo (TERMO_ADITIVO).
+     * Precisa de transação ativa: se ela for desfeita, os arquivos gravados são apagados.
+     */
+    List<ContractAttachment> storeNew(List<MultipartFile> files, Contract contract, AppUser user, AttachmentType type) throws IOException {
+        List<ValidatedFile> validated = validateFiles(files);
         List<ContractAttachment> attachments = new ArrayList<>();
+        for (ValidatedFile file : validated) {
+            String path = store(contract.getId(), file);
+            attachments.add(new ContractAttachment(contract, file.fileName(), file.contentType(), file.sizeBytes(), path, type, user));
+        }
+        return attachments;
+    }
+
+    /** Grava um arquivo já validado em disco e garante que ele seja apagado se a transação atual for desfeita. */
+    String store(Long contractId, ValidatedFile file) throws IOException {
+        String path = storage.save(contractId, file.content());
+        storage.deleteOnRollback(path);
+        return path;
+    }
+
+    /** Valida os arquivos (vazio/quebrado, nome, extensão) e lê o conteúdo. Não grava nada. */
+    static List<ValidatedFile> validateFiles(List<MultipartFile> files) throws IOException {
+        List<ValidatedFile> validated = new ArrayList<>();
 
         for (MultipartFile file : files) {
 
@@ -87,14 +116,13 @@ public class ContractAttachmentService {
             }
             var contem = file.getOriginalFilename().toLowerCase();
             if (contem.endsWith(".pdf") || contem.endsWith(".doc") || contem.endsWith(".docx")) {
-                var contractAttachments = new ContractAttachment(contract, file.getOriginalFilename(), file.getContentType(), file.getSize(), file.getBytes(), type, user);
-                attachments.add(contractAttachments);
+                validated.add(new ValidatedFile(file.getOriginalFilename(), file.getContentType(), file.getSize(), file.getBytes()));
             } else {
                 throw new IllegalArgumentException("Apenas arquivos pdf, doc e docx são permitidos");
             }
 
         }
-        return attachments;
+        return validated;
     }
 
     @Transactional
@@ -114,7 +142,12 @@ public class ContractAttachmentService {
 
         var user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Não existe usuário com o nome: " + username));
 
+        String path = attachment.getStoragePath();
         attachment.removeAttachment(user);
+        // O arquivo só some do disco depois que o banco confirmar a remoção.
+        if (path != null) {
+            storage.deleteAfterCommit(path);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -138,7 +171,20 @@ public class ContractAttachmentService {
                 attachment.getContract().getId(),
                 attachment.getFileName(),
                 attachment.getContentType(),
-                attachment.getContent());
+                readContent(attachment));
+    }
+
+    /** Lê do disco; só os anexos anteriores à migração (sem caminho) ainda vêm do banco. */
+    private byte[] readContent(ContractAttachment attachment) {
+        String path = attachment.getStoragePath();
+        try {
+            return storage.read(path);
+        } catch (IOException e) {
+            // Detalhe e caminho só no log: o cliente recebe uma mensagem genérica.
+            log.error("Falha ao ler o anexo {} (contrato {}) em {}: {}", attachment.getId(),
+                    attachment.getContract().getId(), path, e.toString());
+            throw new AttachmentStorageException("Não foi possível ler o arquivo do anexo. Tente novamente; se persistir, avise o suporte.", e);
+        }
     }
 
     private ContractAttachmentResponse mapAttachmentResponse(ContractAttachment attachment) {

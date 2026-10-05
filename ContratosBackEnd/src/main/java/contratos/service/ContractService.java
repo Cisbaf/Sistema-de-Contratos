@@ -34,6 +34,7 @@ public class ContractService {
     private final LancamentoFinanceiroRepository financeiroRepository;
     private final LancamentoFinanceiroHistoricoRepository financeiroHistoricoRepository;
     private final AuditService auditService;
+    private final AttachmentStorage attachmentStorage;
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
@@ -126,6 +127,8 @@ public class ContractService {
         interestRepository.deleteByContract_Id(contractId);
         technicalOpinionRepository.deleteByContract_Id(contractId);
         generatedDocumentRepository.deleteByContract_Id(contractId);
+        // Os arquivos dos anexos saem do disco só depois que o banco confirmar a exclusão do contrato.
+        attachmentRepository.findStoragePathsByContractId(contractId).forEach(attachmentStorage::deleteAfterCommit);
         attachmentRepository.deleteByContract_Id(contractId);
         notificationLogRepository.deleteByContract_Id(contractId);
         financeiroHistoricoRepository.deleteByContrato_Id(contractId);
