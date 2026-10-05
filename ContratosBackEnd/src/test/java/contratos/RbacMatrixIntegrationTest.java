@@ -21,6 +21,10 @@ import contratos.repository.SectorRepository;
 import contratos.repository.UserRepository;
 import contratos.security.JwtService;
 import jakarta.servlet.ServletException;
+import contratos.service.AttachmentStorage;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -94,6 +98,7 @@ class RbacMatrixIntegrationTest {
     @Autowired private ContractRepository contracts;
     @Autowired private LancamentoFinanceiroRepository lancamentos;
     @Autowired private ContractAttachmentRepository attachments;
+    @Autowired private AttachmentStorage storage;
     @Autowired private GeneratedDocumentRepository documents;
     @Autowired private DocumentTemplateRepository templates;
 
@@ -129,9 +134,9 @@ class RbacMatrixIntegrationTest {
         lancamentoId = lancamentos.save(new LancamentoFinanceiro("PROC-1", "NF-1", LocalDate.of(2026, 2, 1), "1",
                 new BigDecimal("10.00"), "obs", contract, admin)).getId();
         attachmentId = attachments.save(new ContractAttachment(contract, "doc.pdf", "application/pdf", 8,
-                "%PDF-1.4".getBytes(), AttachmentType.GERAL,admin)).getId();
+                storedFile(contract.getId()), AttachmentType.GERAL, admin)).getId();
         amendmentDocId = attachments.save(new ContractAttachment(contract, "aditivo.pdf", "application/pdf", 8,
-                "%PDF-1.4".getBytes(), AttachmentType.TERMO_ADITIVO, admin)).getId();
+                storedFile(contract.getId()), AttachmentType.TERMO_ADITIVO, admin)).getId();
         documentId = documents.save(new GeneratedDocument("gerado.pdf", 1, "%PDF-1.4".getBytes(),
                 LocalDateTime.now(), admin, DocumentFormat.PDF, DocumentTemplateType.TECHNICAL_OPINION, contract)).getId();
         templateId = templates.findAll().stream().findFirst()
@@ -691,5 +696,14 @@ class RbacMatrixIntegrationTest {
     void usernameNasceNormalizadoNaCriacao() throws Exception {
         assertThat(call(Persona.ADMIN, json(post("/api/users"), userJson("Maiusc.Rbac@Test.Local", "FISCAL")))).isIn(200, 201);
         assertThat(users.findByUsername("maiusc.rbac@test.local")).isPresent();
+    }
+
+    /** Grava um PDF mínimo na pasta de anexos de teste e devolve o caminho que o anexo guarda no banco. */
+    private String storedFile(Long contractId) {
+        try {
+            return storage.save(contractId, "%PDF-1.4".getBytes());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

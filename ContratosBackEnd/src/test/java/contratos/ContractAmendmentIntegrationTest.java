@@ -39,6 +39,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.context.WebApplicationContext;
 
+import contratos.service.AttachmentStorage;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -65,6 +67,7 @@ class ContractAmendmentIntegrationTest {
     @Autowired SectorRepository sectors;
     @Autowired ContractRepository contracts;
     @Autowired ContractAttachmentRepository attachments;
+    @Autowired AttachmentStorage storage;
     @Autowired ContractStatusHistoryRepository history;
     @Autowired InterestEmailConfirmationRepository interests;
     @Autowired TechnicalOpinionRepository opinions;
@@ -122,7 +125,7 @@ class ContractAmendmentIntegrationTest {
         assertThat(anexos.get(0).getAttType()).isEqualTo(AttachmentType.TERMO_ADITIVO);
         assertThat(anexos.get(0).isAtivo()).isTrue();
         assertThat(anexos.get(0).getFileName()).isEqualTo("aditivo.pdf");
-        assertThat(anexos.get(0).getContent()).isEqualTo(PDF);
+        assertThat(storage.read(anexos.get(0).getStoragePath())).isEqualTo(PDF);
 
         tx.executeWithoutResult(s -> {
             List<ContractStatusHistory> rows = history.findAll().stream()
@@ -288,8 +291,8 @@ class ContractAmendmentIntegrationTest {
         Long id = contractInRenewal("1", 12);
         Contract c = contracts.findById(id).orElseThrow();
         for (int i = 0; i < 10; i++) {
-            attachments.save(new ContractAttachment(c, "comum" + i + ".pdf", "application/pdf", 8, PDF,
-                    AttachmentType.GERAL, admin));
+            attachments.save(new ContractAttachment(c, "comum" + i + ".pdf", "application/pdf", 8,
+                    storage.save(c.getId(), PDF), AttachmentType.GERAL, admin));
         }
 
         MockHttpServletResponse response = send(id, ci, pdf("a.pdf"), "2027-03-01");

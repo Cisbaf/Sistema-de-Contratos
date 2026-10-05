@@ -18,7 +18,9 @@ import contratos.repository.InterestEmailConfirmationRepository;
 import contratos.repository.SectorRepository;
 import contratos.repository.TechnicalOpinionRepository;
 import contratos.repository.UserRepository;
+import contratos.config.AttachmentStorageProperties;
 import contratos.security.JwtService;
+import contratos.service.AttachmentStorage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,11 +37,16 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -69,6 +76,8 @@ class ContractAmendmentDocumentIntegrationTest {
     @Autowired TechnicalOpinionRepository opinions;
     @Autowired AuditLogRepository audit;
     @Autowired PlatformTransactionManager tm;
+    @Autowired AttachmentStorage storage;
+    @Autowired AttachmentStorageProperties storageProps;
 
     MockMvc mvc;
     TransactionTemplate tx;
@@ -98,10 +107,10 @@ class ContractAmendmentDocumentIntegrationTest {
         Contract c = contract("DOC-001/2026");
         contractId = contracts.save(c).getId();
         otherContractId = contracts.save(contract("DOC-002/2026")).getId();
-        aditivoId = attachments.save(new ContractAttachment(c, "errado.pdf", "application/pdf", OLD.length, OLD,
-                AttachmentType.TERMO_ADITIVO, admin)).getId();
-        geralId = attachments.save(new ContractAttachment(c, "comum.pdf", "application/pdf", OLD.length, OLD,
-                AttachmentType.GERAL, admin)).getId();
+        aditivoId = attachments.save(new ContractAttachment(c, "errado.pdf", "application/pdf", OLD.length,
+                stored(c.getId(), OLD), AttachmentType.TERMO_ADITIVO, admin)).getId();
+        geralId = attachments.save(new ContractAttachment(c, "comum.pdf", "application/pdf", OLD.length,
+                stored(c.getId(), OLD), AttachmentType.GERAL, admin)).getId();
     }
 
     // ------------------------------------------------------------------ substituição
@@ -114,6 +123,7 @@ class ContractAmendmentDocumentIntegrationTest {
         String taAntes = antes.getTa();
         long historicoAntes = history.count();
         LocalDateTime uploadAntes = attachments.findById(aditivoId).orElseThrow().getUploadedAt();
+        String caminhoAntes = attachments.findById(aditivoId).orElseThrow().getStoragePath();
 
         Thread.sleep(20); // garante que "agora" seja estritamente depois do envio original
         MockHttpServletResponse response = replace(contractId, aditivoId, ci, pdf("certo.pdf", NEW));
@@ -124,7 +134,10 @@ class ContractAmendmentDocumentIntegrationTest {
         assertThat(attachments.count()).isEqualTo(2);
         ContractAttachment depois = attachments.findById(aditivoId).orElseThrow();
         assertThat(depois.getFileName()).isEqualTo("certo.pdf");
-        assertThat(depois.getContent()).isEqualTo(NEW);
+        assertThat(storage.read(depois.getStoragePath())).isEqualTo(NEW);
+        assertThat(depois.getStoragePath()).isNotEqualTo(caminhoAntes);
+        assertThat(storage.exists(caminhoAntes)).as("o arquivo antigo é apagado depois do commit").isFalse();
+        assertThat(arquivosDoContrato(contractId)).as("aditivo novo + anexo comum, sem órfão").hasSize(2);
         assertThat(depois.getSizeBytes()).isEqualTo(NEW.length);
         assertThat(depois.getAttType()).isEqualTo(AttachmentType.TERMO_ADITIVO);
         assertThat(depois.isAtivo()).isTrue();
@@ -142,7 +155,7 @@ class ContractAmendmentDocumentIntegrationTest {
         // o anexo comum do mesmo contrato também não é tocado
         ContractAttachment geral = attachments.findById(geralId).orElseThrow();
         assertThat(geral.getFileName()).isEqualTo("comum.pdf");
-        assertThat(geral.getContent()).isEqualTo(OLD);
+        assertThat(storage.read(geral.getStoragePath())).isEqualTo(OLD);
     }
 
     @Test
@@ -186,7 +199,8 @@ class ContractAmendmentDocumentIntegrationTest {
 
         assertThat(response.getStatus()).isEqualTo(409);
         assertThat(response.getContentAsString()).contains("Termo Aditivo ativo");
-        assertThat(attachments.findById(geralId).orElseThrow().getContent()).isEqualTo(OLD);
+        assertThat(storage.read(attachments.findById(geralId).orElseThrow().getStoragePath())).isEqualTo(OLD);
+        assertThat(arquivosDoContrato(contractId)).as("recusado antes de gravar: nada novo em disco").hasSize(2);
     }
 
     @Test
@@ -206,7 +220,8 @@ class ContractAmendmentDocumentIntegrationTest {
         assertThat(replace(otherContractId, aditivoId, ci, pdf("certo.pdf", NEW)).getStatus()).isEqualTo(404);
         assertThat(replace(contractId, 999_999L, ci, pdf("certo.pdf", NEW)).getStatus()).isEqualTo(404);
 
-        assertThat(attachments.findById(aditivoId).orElseThrow().getContent()).isEqualTo(OLD);
+        assertThat(storage.read(attachments.findById(aditivoId).orElseThrow().getStoragePath())).isEqualTo(OLD);
+        assertThat(arquivosDoContrato(contractId)).hasSize(2);
     }
 
     @Test
@@ -218,7 +233,8 @@ class ContractAmendmentDocumentIntegrationTest {
 
         ContractAttachment a = attachments.findById(aditivoId).orElseThrow();
         assertThat(a.getFileName()).isEqualTo("errado.pdf");
-        assertThat(a.getContent()).isEqualTo(OLD);
+        assertThat(storage.read(a.getStoragePath())).isEqualTo(OLD);
+        assertThat(arquivosDoContrato(contractId)).as("arquivo inválido não deixa nada em disco").hasSize(2);
         assertThat(audit.findAll().stream().filter(l -> contractId.equals(l.getContractId()))).isEmpty();
     }
 
@@ -241,6 +257,22 @@ class ContractAmendmentDocumentIntegrationTest {
     }
 
     // ------------------------------------------------------------------ apoio
+
+    private String stored(Long contractId, byte[] content) {
+        try {
+            return storage.save(contractId, content);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private List<Path> arquivosDoContrato(Long id) throws IOException {
+        Path dir = Path.of(storageProps.storageDir()).toAbsolutePath().resolve(id.toString());
+        if (!Files.isDirectory(dir)) return List.of();
+        try (Stream<Path> files = Files.list(dir)) {
+            return files.filter(Files::isRegularFile).toList();
+        }
+    }
 
     private String bearer(AppUser as) {
         return "Bearer " + jwt.generate(as.getUsername(), as.getName());
