@@ -224,6 +224,7 @@ class RbacMatrixIntegrationTest {
             c("GET /contracts", t -> get("/api/contracts"), AC),
             c("GET /contracts/mine", t -> get("/api/contracts/mine"), FISCAIS),
             c("GET /contracts/{id}", t -> get("/api/contracts/" + t.contractId), ACF),
+            c("GET /contracts/{id}/timeline", t -> get("/api/contracts/" + t.contractId + "/timeline"), ACF),
             c("POST /contracts", t -> json(post("/api/contracts"), t.contractJson("RBAC-NOVO")), AC),
             c("PUT /contracts/{id}", t -> json(put("/api/contracts/" + t.contractId), t.contractJson("RBAC-001")), AC),
             c("DELETE /contracts/{id}", t -> delete("/api/contracts/" + t.contractId), ADM),
@@ -307,7 +308,7 @@ class RbacMatrixIntegrationTest {
     @Test
     void matrizCobreTodosOsEndpointsEsperados() {
         // trava contra "esquecer" uma linha ao editar a matriz: 48 endpoints protegidos x 5 perfis
-        assertThat(cases()).hasSize(49);
+        assertThat(cases()).hasSize(50);
         assertThat(cases().stream().map(Case::name)).doesNotHaveDuplicates();
     }
 
