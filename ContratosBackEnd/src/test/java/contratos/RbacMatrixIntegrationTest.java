@@ -1,37 +1,14 @@
 package contratos;
 
 import com.jayway.jsonpath.JsonPath;
-import contratos.domain.AppUser;
-import contratos.domain.Contract;
-import contratos.domain.ContractAttachment;
-import contratos.domain.DocumentTemplate;
-import contratos.domain.GeneratedDocument;
-import contratos.domain.LancamentoFinanceiro;
-import contratos.domain.Sector;
+import contratos.domain.*;
 import contratos.domain.enums.AttachmentType;
 import contratos.domain.enums.DocumentFormat;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.domain.enums.PerfilUsuario;
-import contratos.repository.ContractAttachmentRepository;
-import contratos.repository.ContractRepository;
-import contratos.repository.DocumentTemplateRepository;
-import contratos.repository.GeneratedDocumentRepository;
-import contratos.repository.LancamentoFinanceiroRepository;
-import contratos.repository.SectorRepository;
-import contratos.repository.UserRepository;
+import contratos.repository.*;
 import contratos.security.JwtService;
-import jakarta.servlet.ServletException;
 import contratos.service.AttachmentStorage;
-
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -39,8 +16,8 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.test.context.ActiveProfiles;
@@ -51,13 +28,19 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 /**
  * M6-70 — Matriz de permissões (RBAC): cada endpoint protegido x cada perfil, com JWT real
@@ -614,12 +597,33 @@ class RbacMatrixIntegrationTest {
      * o endpoint seja consciente: ao fechar, trocar a expectativa para 403/401 e o nome deste teste.
      * O perfil criado é sempre FISCAL (nunca ADMIN/CI), então não há escalada de privilégio por esse caminho.
      */
-    @Test
-    void cadastroPublicoAbertoCriaSempreFiscal_pendenciaM6_90() throws Exception {
-        int status = call(Persona.ANON, json(post("/api/auth/register"),
-                "{\"name\":\"Qualquer Um\",\"email\":\"qualquer@test.local\",\"password\":\"senha123\"}"));
-        assertThat(status).isEqualTo(200);
-        assertThat(users.findByUsername("qualquer@test.local").orElseThrow().getPerfil()).isEqualTo(PerfilUsuario.FISCAL);
+@Test
+    void cadastroDeUsuarioSoPorAdminOuControleInterno() throws Exception {
+        String emailTarget = "qualquer@test.local";
+        Req reqPost = t -> json(post("/api/users"), t.userJson(emailTarget, "FISCAL"));
+
+        // 1. Anônimo recebe 403 e não cria usuário
+        assertThat(call(Persona.ANON, reqPost.build(this))).isEqualTo(403);
+        assertThat(users.findByUsername(emailTarget)).isEmpty();
+
+        // 2. Fiscal recebe 403 e não cria usuário
+        assertThat(call(Persona.FV, reqPost.build(this))).isEqualTo(403);
+        assertThat(users.findByUsername(emailTarget)).isEmpty();
+
+        // 3. Admin recebe 200/201 e cria um FISCAL
+        assertThat(call(Persona.ADMIN, reqPost.build(this))).isIn(200, 201);
+        assertThat(users.findByUsername(emailTarget))
+                .isPresent()
+                .hasValueSatisfying(u -> assertThat(u.getPerfil()).isEqualTo(PerfilUsuario.FISCAL));
+
+        // Limpa o usuário criado para isolar o próximo teste
+        users.findByUsername(emailTarget).ifPresent(users::delete);
+
+        // 4. Controle Interno recebe 200/201 e cria um FISCAL
+        assertThat(call(Persona.CI, reqPost.build(this))).isIn(200, 201);
+        assertThat(users.findByUsername(emailTarget))
+                .isPresent()
+                .hasValueSatisfying(u -> assertThat(u.getPerfil()).isEqualTo(PerfilUsuario.FISCAL));
     }
 
     // ------------------------------------------------------------------ endurecimento do M6-80

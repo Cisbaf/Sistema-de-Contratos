@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -58,6 +59,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @PreAuthorize("@contractAuthorization.isAdminControle(authentication)")
     public ResponseEntity<Map<String, String>> register(@RequestBody @Valid RegisterRequest request) {
         String email = request.email().trim().toLowerCase();
         if (users.existsByUsername(email)) throw new ConflictException("Usuário já cadastrado");
