@@ -6,6 +6,8 @@ import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.ContractAttachment;
 import contratos.domain.enums.AttachmentType;
+import contratos.domain.enums.AuditAction;
+import contratos.domain.enums.AuditEntityType;
 import contratos.exception.AttachmentStorageException;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractAttachmentRepository;
@@ -37,6 +39,7 @@ public class ContractAttachmentService {
     private final UserRepository userRepository;
     private final ContractAuthorization contractAuthorization;
     private final AttachmentStorage storage;
+    private final AuditService auditService;
 
     /** Arquivo que passou na validação (vazio/quebrado, nome, extensão), ainda não gravado em lugar nenhum. */
     record ValidatedFile(String fileName, String contentType, long sizeBytes, byte[] content) {
@@ -77,7 +80,16 @@ public class ContractAttachmentService {
 
         List<ContractAttachment> attachments = storeNew(files, contract, user, AttachmentType.GERAL);
 
-        return attachmentRepository.saveAll(attachments).stream().map(this::mapAttachmentResponse).toList();
+        List<ContractAttachment> saved = attachmentRepository.saveAll(attachments);
+
+        // Uma linha de auditoria por arquivo. Nunca o conteúdo nem o caminho em disco (interno do servidor).
+        for (ContractAttachment attachment : saved) {
+            auditService.record(user, AuditAction.UPLOAD_ATTACHMENT, AuditEntityType.ATTACHMENT, attachment.getId(),
+                    contractId, "Anexo enviado ao contrato " + contract.getNumberContract() + ": " + attachment.getFileName(),
+                    new AuditChangeLog().note("Tamanho: " + attachment.getSizeBytes() + " bytes").build());
+        }
+
+        return saved.stream().map(this::mapAttachmentResponse).toList();
     }
 
     /**
@@ -144,6 +156,10 @@ public class ContractAttachmentService {
 
         String path = attachment.getStoragePath();
         attachment.removeAttachment(user);
+        auditService.record(user, AuditAction.REMOVE_ATTACHMENT, AuditEntityType.ATTACHMENT, attachment.getId(),
+                attachment.getContract().getId(),
+                "Anexo removido do contrato " + attachment.getContract().getNumberContract() + ": " + attachment.getFileName(),
+                null);
         // O arquivo só some do disco depois que o banco confirmar a remoção.
         if (path != null) {
             storage.deleteAfterCommit(path);
