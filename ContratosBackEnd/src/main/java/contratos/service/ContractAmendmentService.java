@@ -44,6 +44,8 @@ public class ContractAmendmentService {
     private final TechnicalOpinionRepository technicalOpinionRepository;
     private final ContractStatusService contractStatusService;
     private final AuditService auditService;
+    private final ContractAttachmentService attachmentService;
+    private final AttachmentStorage storage;
 
     @Transactional
     public ContractResponse register(Long contractId, MultipartFile file, LocalDate newEndDate, AppUser actor) throws IOException {
@@ -66,8 +68,9 @@ public class ContractAmendmentService {
                     + " anexos por contrato. Este contrato já tem " + ativos
                     + "; remova um anexo comum antes de registrar o Termo Aditivo.");
         }
-        var attachment = ContractAttachmentService
-                .buildAttachment(List.of(file), contract, actor, AttachmentType.TERMO_ADITIVO).getFirst();
+        // Grava o arquivo em disco (apagado sozinho se esta transação for desfeita) e monta o anexo.
+        var attachment = attachmentService
+                .storeNew(List.of(file), contract, actor, AttachmentType.TERMO_ADITIVO).getFirst();
 
         // Fotografia do "antes" para a auditoria (o contrato é alterado logo abaixo).
         LocalDate previousEndDate = contract.getEndDate();
@@ -119,15 +122,22 @@ public class ContractAmendmentService {
         }
 
         Contract contract = attachment.getContract();
-        ContractAttachment replacement = ContractAttachmentService
-                .buildAttachment(List.of(file), contract, actor, AttachmentType.TERMO_ADITIVO).get(0);
+        ContractAttachmentService.ValidatedFile replacement = ContractAttachmentService
+                .validateFiles(List.of(file)).getFirst();
 
         String previousName = attachment.getFileName();
-        attachment.replaceFile(replacement.getFileName(), replacement.getContentType(), replacement.getSizeBytes(),
-                replacement.getContent(), actor);
+        String previousPath = attachment.getStoragePath();
+
+        // O arquivo novo é gravado antes (e apagado se a transação for desfeita); o antigo só é apagado depois do
+        // commit. Anexo antigo, ainda com o conteúdo no banco, não tem arquivo em disco para apagar.
+        String newPath = attachmentService.store(contractId, replacement);
+        attachment.replaceFile(replacement.fileName(), replacement.contentType(), replacement.sizeBytes(), newPath, actor);
+        if (previousPath != null) {
+            storage.deleteAfterCommit(previousPath);
+        }
 
         String details = new AuditChangeLog()
-                .note("Arquivo: " + previousName + " -> " + replacement.getFileName())
+                .note("Arquivo: " + previousName + " -> " + replacement.fileName())
                 .build();
         auditService.record(actor, AuditAction.UPDATE, AuditEntityType.CONTRACT, contract.getId(), contract.getId(),
                 "Documento do Termo Aditivo substituído no contrato " + contract.getNumberContract(), details);

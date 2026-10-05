@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import contratos.api.dto.ApiErrorResponse;
+import contratos.exception.AttachmentStorageException;
 import contratos.exception.ConflictException;
 import jakarta.persistence.EntityNotFoundException;
 
@@ -42,6 +43,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     ResponseEntity<ApiErrorResponse> businessConflict(ConflictException exception) {
         return response(HttpStatus.CONFLICT, exception.getMessage());
+    }
+
+    @ExceptionHandler(AttachmentStorageException.class)
+    ResponseEntity<ApiErrorResponse> attachmentStorage(AttachmentStorageException exception) {
+        return response(HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

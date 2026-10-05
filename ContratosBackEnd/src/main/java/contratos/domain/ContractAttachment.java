@@ -22,10 +22,16 @@ public class ContractAttachment {
     private String fileName;
     @Column(nullable = false)
     private String contentType;
+    /** Tamanho ORIGINAL do arquivo (o que o usuário enviou), não o do arquivo comprimido em disco. */
     @Column(nullable = false)
     private long sizeBytes;
-    @Column(nullable = false, columnDefinition = "LONGBLOB")
-    private byte[] content;
+    /**
+     * Caminho relativo do arquivo (comprimido) dentro da pasta de anexos, ver {@code AttachmentStorage} (ANX-10).
+     * Nulo só em anexo removido.
+     */
+    @Column(length = 255)
+    private String storagePath;
+
     @Enumerated(value = EnumType.STRING)
     @Column(columnDefinition = "VARCHAR(20) NOT NULL DEFAULT 'GERAL'", nullable = false)
     private AttachmentType attType;
@@ -40,14 +46,14 @@ public class ContractAttachment {
     @ManyToOne(fetch = FetchType.LAZY)
     private AppUser removedBy;
 
-    public ContractAttachment(Contract contract, String fileName, String contentType, long sizeBytes, byte[] content, AttachmentType attType,
-                              AppUser uploadedBy) {
+    public ContractAttachment(Contract contract, String fileName, String contentType, long sizeBytes, String storagePath,
+                              AttachmentType attType, AppUser uploadedBy) {
         this.contract = contract;
         this.fileName = fileName;
         this.contentType = contentType;
         this.sizeBytes = sizeBytes;
         this.attType = attType;
-        this.content = content;
+        this.storagePath = storagePath;
         this.uploadedAt = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         this.uploadedBy = uploadedBy;
     }
@@ -55,27 +61,28 @@ public class ContractAttachment {
     /**
      * Substituição do arquivo (usada no documento do Termo Aditivo): sobrescreve a mesma linha, sem criar outra, para
      * não inflar a contagem de aditivos nem o limite de anexos. Quem enviou e quando passam a ser os da troca; o
-     * arquivo anterior só fica na auditoria (nome). Tipo, contrato e situação (ativo) não mudam.
+     * arquivo anterior só fica na auditoria (nome). Tipo, contrato e situação (ativo) não mudam. O arquivo novo já
+     * deve estar gravado em disco; quem chama apaga o antigo depois do commit.
      */
-    public void replaceFile(String fileName, String contentType, long sizeBytes, byte[] content, AppUser user) {
+    public void replaceFile(String fileName, String contentType, long sizeBytes, String storagePath, AppUser user) {
         if (!ativo) {
             throw new IllegalStateException("Não é possível substituir um anexo removido");
         }
         this.fileName = fileName;
         this.contentType = contentType;
         this.sizeBytes = sizeBytes;
-        this.content = content;
+        this.storagePath = storagePath;
         this.uploadedAt = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         this.uploadedBy = user;
     }
 
     /**
-     * Remoção lógica: mantém o registro (nome, tamanho original, quem enviou/removeu e quando)
-     * para o histórico, mas descarta o conteúdo do arquivo para liberar espaço no banco.
-     * A coluna é NOT NULL, então o conteúdo vira um array vazio em vez de null.
+     * Remoção lógica: mantém o registro (nome, tamanho original, quem enviou/removeu e quando) para o histórico, mas
+     * esquece o arquivo: o caminho é descartado (quem chama apaga o arquivo do disco depois do
+     * commit).
      */
     public void removeAttachment(AppUser removedBy) {
-        this.content = new byte[0];
+        this.storagePath = null;
         this.removedAt = LocalDateTime.now(ZoneId.of("America/Sao_Paulo"));
         this.removedBy = removedBy;
         this.ativo = false;
