@@ -32,6 +32,24 @@ export interface Contract {
 
 export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMAIL_ENVIADO" | "RENOVACAO_ABERTA_SEI";
 
+export type ContractStatusTrigger = "DEADLINE" | "INTEREST_EMAIL_GENERATED" | "TECHNICAL_OPINION_GENERATED" | "ADITIVO_REGISTRADO";
+
+export type ContractTimelineEventType = "STATUS_CHANGED" | "DOCUMENT_GENERATED" | "ATTACHMENT_UPLOADED" | "ATTACHMENT_REMOVED";
+
+/** Evento da linha do tempo do contrato; só os campos do respectivo `type` vêm preenchidos. `actorName` nulo = sistema. */
+export interface ContractTimelineEvent {
+  type: ContractTimelineEventType;
+  occurredAt: string;
+  actorName: string | null;
+  fromStatus: ContractStatus | null;
+  toStatus: ContractStatus | null;
+  trigger: ContractStatusTrigger | null;
+  documentType: DocumentTemplateType | null;
+  version: number | null;
+  fileName: string | null;
+  attType: AttachmentType | null;
+}
+
 export type DocumentTemplateType = "INTEREST_EMAIL" | "TECHNICAL_OPINION" | "SUPPLIER_RENEWAL_EMAIL" | "PAYMENT_CHECKLIST";
 
 export interface DocumentTemplate {
