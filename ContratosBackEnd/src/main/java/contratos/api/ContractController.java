@@ -2,12 +2,14 @@ package contratos.api;
 
 import contratos.api.dto.Contract.ContractRequest;
 import contratos.api.dto.Contract.ContractResponse;
+import contratos.api.dto.Contract.ContractTimelineEvent;
 import contratos.api.dto.InterestEmail.InterestEmailConfirmResponse;
 import contratos.api.dto.InterestEmail.InterestEmailPreviewResponse;
 import contratos.api.dto.TechnicalOpinion.TextPayload;
 import contratos.domain.AppUser;
 import contratos.service.ContractAmendmentService;
 import contratos.service.ContractService;
+import contratos.service.ContractTimelineService;
 import contratos.service.InterestEmailConfirmationService;
 import contratos.service.SupplierMaskService;
 import contratos.service.TechnicalOpinionService;
@@ -32,6 +34,7 @@ import java.util.List;
 public class ContractController {
     private final ContractService service;
     private final ContractAmendmentService amendmentService;
+    private final ContractTimelineService timelineService;
     private final InterestEmailConfirmationService confirmationService;
     private final TechnicalOpinionService technicalOpinionService;
     private final SupplierMaskService supplierMaskService;
@@ -52,6 +55,13 @@ public class ContractController {
     @PreAuthorize("@contractAuthorization.canRead(#id, authentication)")
     public ResponseEntity<ContractResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
+    }
+
+    /** Linha do tempo do contrato (status, documentos gerados e anexos), do mais recente para o mais antigo. */
+    @GetMapping("/{id}/timeline")
+    @PreAuthorize("@contractAuthorization.canRead(#id, authentication)")
+    public ResponseEntity<List<ContractTimelineEvent>> timeline(@PathVariable Long id) {
+        return ResponseEntity.ok(timelineService.timeline(id));
     }
 
     @PostMapping

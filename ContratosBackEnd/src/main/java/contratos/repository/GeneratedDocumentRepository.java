@@ -1,5 +1,6 @@
 package contratos.repository;
 
+import contratos.api.dto.Contract.ContractTimelineEvent;
 import contratos.domain.GeneratedDocument;
 import contratos.domain.enums.DocumentTemplateType;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,14 @@ public interface GeneratedDocumentRepository extends JpaRepository<GeneratedDocu
     Optional<GeneratedDocument> findByDocumentTypeAndLancamento_Id(DocumentTemplateType documentType, Long lancamentoId);
 
     void deleteByContract_Id(Long contractId);
+
+    /** Documentos gerados do contrato para a linha do tempo. Seleciona só as colunas leves: nunca carrega o PDF (LONGBLOB). */
+    @Query("""
+            select new contratos.api.dto.Contract.ContractTimelineEvent(d.generatedAt, u.name, d.documentType, d.version, d.fileName)
+            from GeneratedDocument d left join d.generatedBy u
+            where d.contract.id = :contractId
+            """)
+    List<ContractTimelineEvent> timeline(@Param("contractId") Long contractId);
 
     @Query(value = """
             select a from GeneratedDocument a
