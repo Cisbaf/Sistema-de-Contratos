@@ -8,6 +8,8 @@ import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.GeneratedDocument;
 import contratos.domain.LancamentoFinanceiro;
+import contratos.domain.enums.AuditAction;
+import contratos.domain.enums.AuditEntityType;
 import contratos.domain.enums.DocumentFormat;
 import contratos.domain.enums.DocumentTemplateType;
 import contratos.repository.ContractRepository;
@@ -37,7 +39,10 @@ public class GeneratedDocumentService {
     private final UserRepository userRepository;
     private final LancamentoFinanceiroRepository lancamentoRepository;
     private final ContractAuthorization authorization;
+    private final AuditService auditService;
 
+    // @Transactional: o AuditService.record exige transação (a linha de auditoria nasce e morre com o documento).
+    @Transactional
     public GeneratedDocumentResponse store(GeneratedDocumentRequest request, String username) {
         Contract contract = contractRepository.findById(request.contractId()).orElseThrow(() -> new EntityNotFoundException("Id do contrato não existe"));
         AppUser user = userRepository.findByUsername(username).orElseThrow(() -> new EntityNotFoundException("Id do usuário não existe"));
@@ -60,6 +65,17 @@ public class GeneratedDocumentService {
                 request.documentType(),
                 contract,
                 lancamento));
+
+        // Nunca o conteúdo do PDF: só quem gerou, o tipo, a versão e o nome do arquivo.
+        AuditChangeLog details = new AuditChangeLog()
+                .note("Arquivo: " + document.getFileName())
+                .note("Formato: " + document.getFormat());
+        if (lancamento != null) {
+            details.note("Lançamento (nota fiscal): " + lancamento.getNotaFiscal());
+        }
+        auditService.record(user, AuditAction.GENERATE_DOCUMENT, AuditEntityType.DOCUMENT, document.getId(),
+                contract.getId(), "Documento gerado: " + document.getDocumentType() + " v" + document.getVersion()
+                        + " do contrato " + contract.getNumberContract(), details.build());
         return mapResponse(document);
     }
 

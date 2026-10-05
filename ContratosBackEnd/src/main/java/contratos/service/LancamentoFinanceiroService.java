@@ -7,6 +7,8 @@ import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.LancamentoFinanceiro;
 import contratos.domain.LancamentoFinanceiroHistorico;
+import contratos.domain.enums.AuditAction;
+import contratos.domain.enums.AuditEntityType;
 import contratos.domain.enums.TipoEventoLancamento;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
@@ -23,6 +25,9 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
 
@@ -34,6 +39,7 @@ public class LancamentoFinanceiroService {
     private final ContractRepository contractRepository;
     private final UserRepository userRepository;
     private final ContractAuthorization authorization;
+    private final AuditService auditService;
 
     // READ_COMMITTED + trava do contrato: quem chega depois espera e já enxerga o saldo atualizado
     // (no REPEATABLE READ padrão do MySQL ele leria um saldo antigo e poderia estourar o contrato).
@@ -60,6 +66,9 @@ public class LancamentoFinanceiroService {
                 vazioParaNull(request.observacoes()),
                 contrato,
                 usuario));
+        auditService.record(usuario, AuditAction.CREATE, AuditEntityType.LANCAMENTO, lancamento.getId(), contratoId,
+                "Lançamento criado no contrato " + contrato.getNumberContract() + ": NF " + lancamento.getNotaFiscal(),
+                dadosDoLancamento(lancamento).build());
         return mapResponse(lancamento);
     }
 
@@ -89,6 +98,14 @@ public class LancamentoFinanceiroService {
                 .subtract(request.valorNota());
         validarSaldo(saldoProjetado);
 
+        // Valores de ANTES para a auditoria (o lançamento é alterado logo abaixo).
+        String processoAntes = lancamento.getNumeroProcesso();
+        String notaAntes = lancamento.getNotaFiscal();
+        String competenciaAntes = formatarCompetencia(lancamento.getCompetencia());
+        String parcelaAntes = lancamento.getParcela();
+        BigDecimal valorAntes = lancamento.getValorNota();
+        String observacoesAntes = lancamento.getObservacoes();
+
         // Snapshot ANTES do update, senão o histórico guardaria os valores novos.
         historicoRepository.save(new LancamentoFinanceiroHistorico(lancamento, TipoEventoLancamento.EDICAO, usuario));
 
@@ -100,23 +117,46 @@ public class LancamentoFinanceiroService {
                 request.valorNota(),
                 vazioParaNull(request.observacoes()),
                 usuario);
+
+        AuditChangeLog mudancas = new AuditChangeLog()
+                .field("Nota fiscal", notaAntes, lancamento.getNotaFiscal())
+                .field("Processo", processoAntes, lancamento.getNumeroProcesso())
+                .field("Competência", competenciaAntes, formatarCompetencia(lancamento.getCompetencia()))
+                .field("Parcela", parcelaAntes, lancamento.getParcela())
+                .field("Valor", valorAntes, lancamento.getValorNota());
+        // Texto livre não vai para o log: só o fato de ter mudado.
+        if (!Objects.equals(observacoesAntes, lancamento.getObservacoes())) {
+            mudancas.note("Observações alteradas");
+        }
+        auditService.record(usuario, AuditAction.UPDATE, AuditEntityType.LANCAMENTO, lancamento.getId(), contrato.getId(),
+                "Lançamento editado no contrato " + contrato.getNumberContract() + ": NF " + lancamento.getNotaFiscal(),
+                mudancas.build());
         return mapResponse(lancamento);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void excluir(Long lancamentoId, Authentication authentication) {
         LancamentoFinanceiro lancamento = buscarLancamentoAtivo(lancamentoId, authentication);
+        AppUser usuario = buscarUsuario(authentication.getName());
+        Contract contrato = lancamento.getContrato();
 
-        // Exclusão híbrida: nunca editado -> DELETE físico, sem rastro, nota fiscal liberada.
+        // Os dados são lidos ANTES de apagar: no caminho físico a linha deixa de existir.
+        AuditChangeLog detalhes = dadosDoLancamento(lancamento);
+        String resumo = "Lançamento excluído do contrato " + contrato.getNumberContract() + ": NF " + lancamento.getNotaFiscal();
+
+        // Exclusão híbrida: nunca editado -> DELETE físico, sem histórico próprio, nota fiscal liberada.
         if (!historicoRepository.existsByLancamento_Id(lancamentoId)) {
             repository.delete(lancamento);
+            auditService.record(usuario, AuditAction.DELETE, AuditEntityType.LANCAMENTO, lancamentoId, contrato.getId(), resumo,
+                    detalhes.note("Exclusão definitiva (nunca havia sido editado; a nota fiscal fica livre)").build());
             return;
         }
 
         // Já editado -> só desativa e registra a exclusão; a nota fiscal continua reservada.
-        AppUser usuario = buscarUsuario(authentication.getName());
         historicoRepository.save(new LancamentoFinanceiroHistorico(lancamento, TipoEventoLancamento.EXCLUSAO, usuario));
         lancamento.desativaLancamento(usuario);
+        auditService.record(usuario, AuditAction.DELETE, AuditEntityType.LANCAMENTO, lancamentoId, contrato.getId(), resumo,
+                detalhes.note("Lançamento desativado (já havia sido editado; a nota fiscal continua reservada)").build());
     }
 
     @Transactional(readOnly = true)
@@ -157,6 +197,21 @@ public class LancamentoFinanceiroService {
                 && atual.getValorNota().compareTo(novo.valorNota()) == 0
                 && Objects.equals(atual.getParcela(), vazioParaNull(novo.parcela()))
                 && Objects.equals(atual.getObservacoes(), vazioParaNull(novo.observacoes()));
+    }
+
+    private AuditChangeLog dadosDoLancamento(LancamentoFinanceiro lancamento) {
+        AuditChangeLog dados = new AuditChangeLog()
+                .note("Nota fiscal: " + lancamento.getNotaFiscal())
+                .note("Processo: " + lancamento.getNumeroProcesso())
+                .note("Competência: " + formatarCompetencia(lancamento.getCompetencia()));
+        if (lancamento.getParcela() != null) {
+            dados.note("Parcela: " + lancamento.getParcela());
+        }
+        return dados.note("Valor: " + lancamento.getValorNota().setScale(2, RoundingMode.HALF_UP).toPlainString());
+    }
+
+    private static String formatarCompetencia(LocalDate competencia) {
+        return competencia == null ? null : competencia.format(DateTimeFormatter.ofPattern("MM/yyyy"));
     }
 
     private String vazioParaNull(String texto) {
