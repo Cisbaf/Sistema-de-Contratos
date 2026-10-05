@@ -591,13 +591,8 @@ class RbacMatrixIntegrationTest {
         assertThat(call(Persona.ANON, post("/api/auth/logout"))).isEqualTo(200);
     }
 
-    /**
-     * ACHADO PENDENTE (cartão M6-90, bloco de segurança): o cadastro público está aberto — qualquer pessoa sem login
-     * cria uma conta com perfil FISCAL. O teste fixa o comportamento ATUAL (200) para que a decisão de fechar/restringir
-     * o endpoint seja consciente: ao fechar, trocar a expectativa para 403/401 e o nome deste teste.
-     * O perfil criado é sempre FISCAL (nunca ADMIN/CI), então não há escalada de privilégio por esse caminho.
-     */
-@Test
+    /** Cadastro de usuário pelo CRUD de usuários: só Admin e Controle Interno; o perfil criado é FISCAL. */
+    @Test
     void cadastroDeUsuarioSoPorAdminOuControleInterno() throws Exception {
         String emailTarget = "qualquer@test.local";
         Req reqPost = t -> json(post("/api/users"), t.userJson(emailTarget, "FISCAL"));
@@ -624,6 +619,39 @@ class RbacMatrixIntegrationTest {
         assertThat(users.findByUsername(emailTarget))
                 .isPresent()
                 .hasValueSatisfying(u -> assertThat(u.getPerfil()).isEqualTo(PerfilUsuario.FISCAL));
+    }
+
+    /**
+     * M6-90: o cadastro por /api/auth/register deixou de ser público. Só Admin e Controle Interno cadastram,
+     * e a conta criada é sempre FISCAL (nunca ADMIN/CI), então não há escalada de privilégio por esse caminho.
+     */
+    @Test
+    void registerSoPorAdminOuControleInterno() throws Exception {
+        String email = "registro@test.local";
+        String corpo = "{\"name\":\"Qualquer Um\",\"email\":\"" + email + "\",\"password\":\"senha123\"}";
+        Req reqRegister = t -> json(post("/api/auth/register"), corpo);
+
+        // 1. Anônimo recebe 403 e não cria usuário
+        assertThat(call(Persona.ANON, reqRegister.build(this))).isEqualTo(403);
+        assertThat(users.findByUsername(email)).isEmpty();
+
+        // 2. Fiscal recebe 403 e não cria usuário
+        assertThat(call(Persona.FV, reqRegister.build(this))).isEqualTo(403);
+        assertThat(users.findByUsername(email)).isEmpty();
+
+        // 3. Admin recebe 200 e cria um FISCAL
+        assertThat(call(Persona.ADMIN, reqRegister.build(this))).isEqualTo(200);
+        assertThat(users.findByUsername(email))
+                .isPresent()
+                .hasValueSatisfying(u -> assertThat(u.getPerfil()).isEqualTo(PerfilUsuario.FISCAL));
+        users.findByUsername(email).ifPresent(users::delete);
+
+        // 4. Controle Interno recebe 200 e cria um FISCAL
+        assertThat(call(Persona.CI, reqRegister.build(this))).isEqualTo(200);
+        assertThat(users.findByUsername(email))
+                .isPresent()
+                .hasValueSatisfying(u -> assertThat(u.getPerfil()).isEqualTo(PerfilUsuario.FISCAL));
+        users.findByUsername(email).ifPresent(users::delete);
     }
 
     // ------------------------------------------------------------------ endurecimento do M6-80
