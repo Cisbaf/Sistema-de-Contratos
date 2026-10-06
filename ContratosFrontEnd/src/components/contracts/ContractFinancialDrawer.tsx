@@ -225,7 +225,7 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
         </>}
       </Box>
 
-    <LancamentoFormDialog open={formOpen} lancamento={editing} saving={saving} onClose={() => setFormOpen(false)} onSubmit={payload => void save(payload)} />
+    <LancamentoFormDialog open={formOpen} lancamento={editing} startDate={contract.startDate} endDate={contract.endDate} saving={saving} onClose={() => setFormOpen(false)} onSubmit={payload => void save(payload)} />
     <PaymentChecklistDialog
       open={Boolean(checklistLancamento)}
       lancamento={checklistLancamento}
