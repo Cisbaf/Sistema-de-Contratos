@@ -12,6 +12,7 @@ import GeneratedDocumentsDialog from "@/components/contracts/GeneratedDocumentsD
 import InterestEmailDialog from "@/components/contracts/InterestEmailDialog";
 import SupplierMaskDialog from "@/components/contracts/SupplierMaskDialog";
 import TechnicalOpinionDialog from "@/components/contracts/TechnicalOpinionDialog";
+import VigenciaChip from "@/components/contracts/VigenciaChip";
 import { useAuth } from "@/components/DashboardShell";
 import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
@@ -226,6 +227,7 @@ export default function ContractsPage() {
                     <TableCell>
                       <Typography variant="body2">{date(item.startDate)} a</Typography>
                       <Typography variant="body2">{date(item.endDate)}</Typography>
+                      <VigenciaChip endDate={item.endDate} />
                     </TableCell>
                     <TableCell>{item.font || "—"}{item.ta && <Chip label={`TA ${item.ta}`} size="small" sx={{ ml: 1 }} />}</TableCell>
                     <TableCell> <Chip label={status.label} color={status.color} size="small" /> </TableCell>

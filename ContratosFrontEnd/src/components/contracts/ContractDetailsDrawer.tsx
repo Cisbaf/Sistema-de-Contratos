@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCnpj } from "@/lib/formatters";
+import VigenciaChip from "./VigenciaChip";
 import type { Contract } from "@/types";
 import {
     AttachFileOutlined, DescriptionOutlined, EmailOutlined, FolderOutlined, HistoryOutlined, NotificationsOutlined,
@@ -94,7 +95,10 @@ export default function ContractDetailsDrawer({
                     <Campo label="Número SEI">{contract.seiProcessNumber || "—"}</Campo>
                     <Campo label="Valor global">{money.format(contract.valueGlobal)}</Campo>
                     <Campo label="Valor mensal">{money.format(contract.valueMensal)}</Campo>
-                    <Campo label="Vigência">{date(contract.startDate)} a {date(contract.endDate)}</Campo>
+                    <Campo label="Vigência">
+                        {date(contract.startDate)} a {date(contract.endDate)}
+                        <Box><VigenciaChip endDate={contract.endDate} /></Box>
+                    </Campo>
                     <Campo label="Limite de prorrogação">
                         {contract.maxExtensionMonths === null
                             ? "—"
