@@ -27,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,6 +50,7 @@ public class LancamentoFinanceiroService {
         Contract contrato = bloquearContrato(contratoId);
         AppUser usuario = buscarUsuario(username);
         String notaFiscal = request.notaFiscal().trim();
+        validarCompetenciaEParcela(contrato, request.competencia(), request.parcela() );
 
         // Sem filtro de ativo: a constraint física nota_fiscal + contrato_id também vale para desativados.
         if (repository.existsByContrato_IdAndNotaFiscal(contratoId, notaFiscal)) {
@@ -79,6 +82,7 @@ public class LancamentoFinanceiroService {
         AppUser usuario = buscarUsuario(authentication.getName());
         Contract contrato = lancamento.getContrato();
         String notaFiscal = request.notaFiscal().trim();
+        validarCompetenciaEParcela(contrato, request.competencia(), request.parcela() );
 
         // Nada mudou: não grava histórico nem atualiza "atualizado por/em".
         if (semAlteracao(lancamento, request, notaFiscal)) {
@@ -221,6 +225,26 @@ public class LancamentoFinanceiroService {
     private Contract bloquearContrato(Long contratoId) {
         return contractRepository.findByIdForUpdate(contratoId)
                 .orElseThrow(() -> new EntityNotFoundException("Contrato não encontrado com o id: " + contratoId));
+    }
+
+    private void validarCompetenciaEParcela(Contract c, LocalDate competencia, String parcela) {
+        YearMonth inicio = YearMonth.from(c.getStartDate());
+        YearMonth fim = YearMonth.from(c.getEndDate());
+        YearMonth comp = YearMonth.from(competencia);
+        if (comp.isBefore(inicio) || comp.isAfter(fim)) {
+            throw new IllegalArgumentException("Competência deve estar entre " + fmt(inicio) + " e " + fmt(fim) + " (vigência do contrato)");
+        }
+        String p = vazioParaNull(parcela);
+        if (p != null) {
+            int total = (int) ChronoUnit.MONTHS.between(inicio, fim) + 1;
+            if (Integer.parseInt(p) > total) {
+                throw new IllegalArgumentException("Parcela deve estar entre 1 e " + total + " (meses de vigência)");
+            }
+        }
+    }
+
+    private static String fmt(YearMonth ym) {
+        return ym.format(DateTimeFormatter.ofPattern("MM/yyyy"));
     }
 
     private Contract buscarContrato(Long contratoId) {
