@@ -286,6 +286,7 @@ export default function ContractsPage() {
       open={open}
       contract={editing}
       users={users}
+      isAdmin={isAdmin}
       onClose={() => setOpen(false)}
       onSubmit={saveContract}
       onError={message => setFeedback({ message, error: true })}

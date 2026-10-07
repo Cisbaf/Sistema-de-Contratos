@@ -1,7 +1,9 @@
 "use client"
 
+import { getJson } from "@/lib/api";
 import { formatCnpj, isValidCnpj } from "@/lib/formatters";
-import { Contract, User } from "@/types";
+import { faixaDeLancamento } from "@/lib/vigencia";
+import { Contract, LancamentoForaDaFaixa, User } from "@/types";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, OutlinedInput, Select, TextField, Typography } from "@mui/material";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
@@ -31,9 +33,19 @@ type ContractFormDialogProps = {
     contract: Contract | null;
     users: User[];
     onClose: () => void;
+    isAdmin: boolean;
     onSubmit: (payload: ContractFormPayload) => Promise<void>;
     onError: (message: string) => void;
 };
+
+// LC-10: quantos lançamentos afetados a confirmação lista; o resto vira "e mais N".
+const MAX_AFETADOS_LISTADOS = 5;
+
+const competenciaLabel = (value: string) => `${value.slice(5, 7)}/${value.slice(0, 4)}`;
+
+const motivoLabel = (item: LancamentoForaDaFaixa) =>
+    item.competenciaFora && item.parcelaFora ? "competência e parcela fora da vigência"
+        : item.competenciaFora ? "competência fora da vigência" : "parcela fora da vigência";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -57,10 +69,16 @@ const emptyForm = (): ContractFormState => ({
     maxExtensionMonths: null,
 });
 
-export default function ContractFormDialog({ open, contract, users, onClose, onSubmit, onError }: ContractFormDialogProps) {
+export default function ContractFormDialog({ open, contract, users, isAdmin, onClose, onSubmit, onError }: ContractFormDialogProps) {
     const [form, setForm] = useState<ContractFormState>(emptyForm());
     const [fiscalError, setFiscalError] = useState("");
     const [saving, setSaving] = useState(false);
+    // Confirmação única antes de salvar: ST-10 (cancelar renovação, só Administrador) e/ou LC-10 (lançamentos fora da nova vigência).
+    const [confirmation, setConfirmation] = useState<{ cancelRenewal: boolean; afetados: LancamentoForaDaFaixa[] } | null>(null);
+    // ST-10: com a renovação em andamento só o Administrador mexe nas datas, e mexer no fim cancela a renovação.
+    const renewalInProgress = contract?.status === "EMAIL_ENVIADO" || contract?.status === "RENOVACAO_ABERTA_SEI";
+    const datesLocked = renewalInProgress && !isAdmin;
+    const willCancelRenewal = renewalInProgress && isAdmin && contract !== null && form.endDate !== contract.endDate;
     const profileLabels: Record<User["perfil"], string> = {
         ADMIN: "Administrador", CONTROLE_INTERNO: "Controle Interno", FISCAL: "Fiscal",
     };
@@ -70,6 +88,7 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
             return;
         }
         setFiscalError("");
+        setConfirmation(null);
 
         if (!contract) {
             setForm(emptyForm());
@@ -123,6 +142,31 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
         }
 
         setFiscalError("");
+
+        // LC-10: mudou a vigência de um contrato existente? Pergunta ao backend (só consulta) quais lançamentos ficam fora.
+        let afetados: LancamentoForaDaFaixa[] = [];
+        if (contract && (form.startDate !== contract.startDate || form.endDate !== contract.endDate) && form.endDate >= form.startDate) {
+            setSaving(true);
+            try {
+                afetados = await getJson<LancamentoForaDaFaixa[]>(
+                    `/contracts/${contract.id}/lancamentos/fora-da-faixa?startDate=${form.startDate}&endDate=${form.endDate}`);
+            } catch {
+                onError("Não foi possível verificar os lançamentos financeiros. Tente novamente.");
+                return;
+            } finally {
+                setSaving(false);
+            }
+        }
+
+        if (willCancelRenewal || afetados.length > 0) {
+            setConfirmation({ cancelRenewal: willCancelRenewal, afetados });
+            return;
+        }
+
+        await save();
+    }
+
+    async function save() {
         setSaving(true);
 
         try {
@@ -165,10 +209,13 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
                         />
                         <TextField label="Nº Processo SEI" value={form.seiProcessNumber} onChange={e => field("seiProcessNumber", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
                         <TextField label="Início da vigência" value={form.startDate} onChange={e => field("startDate", e.target.value)}
-                            type="date" required slotProps={{ inputLabel: { shrink: true } }} sx={{ gridColumn: { sm: "span 2" } }}
+                            type="date" required disabled={datesLocked} slotProps={{ inputLabel: { shrink: true } }} sx={{ gridColumn: { sm: "span 2" } }}
+                            helperText={datesLocked ? "Com a renovação em andamento, só o Administrador altera as datas." : undefined}
                         />
                         <TextField label="Fim da vigência" value={form.endDate} onChange={e => field("endDate", e.target.value)}
-                            type="date" required slotProps={{ inputLabel: { shrink: true } }} sx={{ gridColumn: { sm: "span 2" } }}
+                            type="date" required disabled={datesLocked} slotProps={{ inputLabel: { shrink: true } }} sx={{ gridColumn: { sm: "span 2" } }}
+                            color={willCancelRenewal ? "warning" : undefined} focused={willCancelRenewal || undefined}
+                            helperText={willCancelRenewal ? "Mudar o fim da vigência cancela a renovação em andamento." : undefined}
                         />
 
                         {/* linha densa: campos curtos, sem span explícito = 1 coluna de 4 cada */}
@@ -250,6 +297,50 @@ export default function ContractFormDialog({ open, contract, users, onClose, onS
                 </DialogActions>
             </form>
 
+            <Dialog open={confirmation !== null} onClose={() => setConfirmation(null)} maxWidth="sm" fullWidth>
+                <DialogTitle>Confirmar alterações</DialogTitle>
+                <DialogContent>
+                    {confirmation?.cancelRenewal && (
+                        <Typography sx={{ mb: 2 }}>
+                            Alterar o fim da vigência cancela a renovação em andamento: as confirmações de interesse dos fiscais e os
+                            pareceres técnicos já registrados serão apagados e o status será recalculado pela nova data. Os documentos
+                            gerados e os anexos continuam.
+                        </Typography>
+                    )}
+                    {confirmation && confirmation.afetados.length > 0 && (
+                        <>
+                            <Typography>
+                                {confirmation.afetados.length === 1
+                                    ? "1 lançamento financeiro ficará fora"
+                                    : `${confirmation.afetados.length} lançamentos financeiros ficarão fora`}
+                                {" "}da nova vigência ({faixaDeLancamento(form.startDate, form.endDate).inicioLabel} a {faixaDeLancamento(form.startDate, form.endDate).fimLabel}).
+                                Eles continuam no sistema, mas só poderão ser editados depois de corrigidos:
+                            </Typography>
+                            <Box component="ul" sx={{ my: 1, pl: 3 }}>
+                                {confirmation.afetados.slice(0, MAX_AFETADOS_LISTADOS).map(item => (
+                                    <li key={item.id}>
+                                        <Typography variant="body2">
+                                            NF {item.notaFiscal} — competência {competenciaLabel(item.competencia)}
+                                            {item.parcela ? `, parcela ${item.parcela}` : ""} ({motivoLabel(item)})
+                                        </Typography>
+                                    </li>
+                                ))}
+                                {confirmation.afetados.length > MAX_AFETADOS_LISTADOS && (
+                                    <li><Typography variant="body2">e mais {confirmation.afetados.length - MAX_AFETADOS_LISTADOS}</Typography></li>
+                                )}
+                            </Box>
+                        </>
+                    )}
+                    <Typography sx={{ mt: 1 }}>Deseja salvar mesmo assim?</Typography>
+                </DialogContent>
+                <DialogActions sx={{ p: 3 }}>
+                    <Button type="button" onClick={() => setConfirmation(null)}>Voltar</Button>
+                    <Button type="button" variant="contained" color="warning"
+                        onClick={() => { setConfirmation(null); void save(); }}>
+                        Salvar mesmo assim
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Dialog >
     )
 }

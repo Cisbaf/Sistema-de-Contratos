@@ -6,6 +6,7 @@ import PaymentChecklistDialog from "@/components/contracts/PaymentChecklistDialo
 import LancamentoHistoryDialog from "@/components/contracts/LancamentoHistoryDialog";
 import { Feedback, PageLoading } from "@/components/Feedback";
 import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
+import { faixaDeLancamento, lancamentoForaDaFaixa } from "@/lib/vigencia";
 import type { Contract, Lancamento, LancamentoRequest } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -13,7 +14,7 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import HistoryIcon from "@mui/icons-material/History";
 import CloseIcon from "@mui/icons-material/Close";
-import { Alert, Box, Button, Divider, Drawer, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Divider, Drawer, IconButton, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -180,7 +181,14 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
           <TableBody>
             {linhas.map(({ item, restante }) => (
               <TableRow key={item.id} hover>
-                <TableCell>{competenciaLabel(item.competencia)}</TableCell>
+                <TableCell>
+                  {competenciaLabel(item.competencia)}
+                  {lancamentoForaDaFaixa(item.competencia, item.parcela, contract.startDate, contract.endDate) && (
+                    <Tooltip title={`Competência ou parcela fora da vigência atual do contrato (${faixaDeLancamento(contract.startDate, contract.endDate).inicioLabel} a ${faixaDeLancamento(contract.startDate, contract.endDate).fimLabel}). Corrija o lançamento para poder editá-lo.`}>
+                      <Chip label="Fora da vigência" size="small" color="warning" variant="outlined" sx={{ ml: 1 }} />
+                    </Tooltip>
+                  )}
+                </TableCell>
                 <TableCell><Typography fontWeight={700}>{item.notaFiscal}</Typography></TableCell>
                 <TableCell>{item.numeroProcesso}</TableCell>
                 <TableCell>{item.parcela || "—"}</TableCell>

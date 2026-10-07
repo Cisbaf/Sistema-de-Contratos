@@ -32,7 +32,7 @@ export interface Contract {
 
 export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMAIL_ENVIADO" | "RENOVACAO_ABERTA_SEI";
 
-export type ContractStatusTrigger = "DEADLINE" | "INTEREST_EMAIL_GENERATED" | "TECHNICAL_OPINION_GENERATED" | "ADITIVO_REGISTRADO";
+export type ContractStatusTrigger = "DEADLINE" | "INTEREST_EMAIL_GENERATED" | "TECHNICAL_OPINION_GENERATED" | "ADITIVO_REGISTRADO" | "CONTRACT_EDITED";
 
 export type ContractTimelineEventType = "STATUS_CHANGED" | "DOCUMENT_GENERATED" | "ATTACHMENT_UPLOADED" | "ATTACHMENT_REMOVED";
 
@@ -92,6 +92,16 @@ export interface ContractAttachment {
   removedAt: string | null;
   removedBy: User | null;
   attType: AttachmentType;
+}
+
+/** LC-10: lançamento ativo que ficaria fora da faixa de datas proposta para o contrato. */
+export interface LancamentoForaDaFaixa {
+  id: number;
+  notaFiscal: string;
+  competencia: string;
+  parcela: string | null;
+  competenciaFora: boolean;
+  parcelaFora: boolean;
 }
 
 export interface Lancamento {

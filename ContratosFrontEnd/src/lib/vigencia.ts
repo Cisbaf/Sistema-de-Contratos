@@ -48,3 +48,17 @@ export function faixaDeLancamento(startDate: string, endDate: string) {
   const fim = indice(endDate);
   return { inicio, fim, inicioLabel: rotulo(inicio), fimLabel: rotulo(fim), totalParcelas: fim - inicio + 1 };
 }
+
+// LC-10: o lançamento já gravado está fora da faixa do contrato (competência fora dos meses da vigência ou
+// parcela que não é um inteiro de 1 até o total de meses)? Mesma regra do backend (`FaixaLancamento`); parcela
+// vazia vale; texto de lançamento antigo ("1/12", "única") conta como fora.
+export function lancamentoForaDaFaixa(competencia: string, parcela: string | null | undefined, startDate: string, endDate: string): boolean {
+  const faixa = faixaDeLancamento(startDate, endDate);
+  const comp = Number(competencia.slice(0, 4)) * 12 + Number(competencia.slice(5, 7)) - 1;
+  if (comp < faixa.inicio || comp > faixa.fim) return true;
+  const p = (parcela ?? "").trim();
+  if (p === "") return false;
+  if (!/^\d+$/.test(p)) return true;
+  const numero = Number(p);
+  return numero < 1 || numero > faixa.totalParcelas;
+}
