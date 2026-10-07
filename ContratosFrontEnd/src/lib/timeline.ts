@@ -14,6 +14,7 @@ export const timelineTriggerLabels: Record<ContractStatusTrigger, string> = {
   INTEREST_EMAIL_GENERATED: "E-mail de interesse gerado",
   TECHNICAL_OPINION_GENERATED: "Parecer técnico gerado",
   ADITIVO_REGISTRADO: "Termo Aditivo registrado",
+  CONTRACT_EDITED: "Contrato editado",
 };
 
 export const timelineDocumentLabels: Record<DocumentTemplateType, string> = {
