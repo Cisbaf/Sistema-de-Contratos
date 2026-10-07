@@ -4,6 +4,7 @@ import contratos.domain.enums.ContractStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -49,6 +50,7 @@ public class Contract {
     @Column(nullable = false, length = 40)
     private ContractStatus status = ContractStatus.EM_VIGENCIA;
 
+    @BatchSize(size = 50)
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "contract_fiscais",
             joinColumns = @JoinColumn(name = "contract_id"),

@@ -3,11 +3,15 @@ package contratos.repository;
 import contratos.domain.NotificationLog;
 import contratos.domain.enums.NotificationAlertType;
 import contratos.domain.enums.NotificationChannel;
+import contratos.domain.enums.NotificationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,4 +56,34 @@ public interface NotificationLogRepository extends JpaRepository<NotificationLog
 
     /** Limpeza na exclusão do contrato. */
     void deleteByContract_Id(Long contractId);
+
+    @Query(value = """
+        select n from NotificationLog n join fetch n.contract c
+        where (:fromDate is null or n.attemptedAt >= :fromDate)
+          and (:toDate   is null or n.attemptedAt <  :toDate)
+          and (:term is null
+               or lower(c.numberContract)   like :term escape '!'
+               or lower(c.seiProcessNumber) like :term escape '!'
+               or lower(n.recipientName)    like :term escape '!'
+               or lower(n.recipientAddress) like :term escape '!'
+               or exists (select f.id from c.fiscais f where lower(f.name) like :term escape '!'))
+        order by n.attemptedAt desc, n.id desc
+        """,
+            countQuery = """
+        select count(n) from NotificationLog n join n.contract c
+        where (:fromDate is null or n.attemptedAt >= :fromDate)
+          and (:toDate   is null or n.attemptedAt <  :toDate)
+          and (:term is null
+               or lower(c.numberContract)   like :term escape '!'
+               or lower(c.seiProcessNumber) like :term escape '!'
+               or lower(n.recipientName)    like :term escape '!'
+               or lower(n.recipientAddress) like :term escape '!'
+               or exists (select f.id from c.fiscais f where lower(f.name) like :term escape '!'))
+        """)
+    Page<NotificationLog> search(@Param("fromDate") LocalDateTime fromDate,
+                                 @Param("toDate") LocalDateTime toDate,
+                                 @Param("term") String term,
+                                 Pageable pageable);
+
+    long countByStatus(NotificationStatus status);
 }

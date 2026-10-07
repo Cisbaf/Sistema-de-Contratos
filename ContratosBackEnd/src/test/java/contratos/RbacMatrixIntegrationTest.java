@@ -270,6 +270,7 @@ class RbacMatrixIntegrationTest {
             // ---- notificações e auditoria
             c("GET /contracts/{id}/notificacoes", t -> get("/api/contracts/" + t.contractId + "/notificacoes"), ACF),
             c("GET /notificacoes", t -> get("/api/notificacoes"), AC),
+            c("GET /notificacoes/resumo", t -> get("/api/notificacoes/resumo"), AC),
             c("GET /notificacoes/parametros", t -> get("/api/notificacoes/parametros"), AC),
             c("PUT /notificacoes/parametros", t -> json(put("/api/notificacoes/parametros"), "{\"firstAlertMonths\":6,\"secondAlertMonths\":3}"), ADM),
             c("GET /auditoria", t -> get("/api/auditoria"), AC),
@@ -309,8 +310,8 @@ class RbacMatrixIntegrationTest {
 
     @Test
     void matrizCobreTodosOsEndpointsEsperados() {
-        // trava contra "esquecer" uma linha ao editar a matriz: 51 endpoints protegidos x 5 perfis
-        assertThat(cases()).hasSize(51);
+        // trava contra "esquecer" uma linha ao editar a matriz: 52 endpoints protegidos x 5 perfis
+        assertThat(cases()).hasSize(52);
         assertThat(cases().stream().map(Case::name)).doesNotHaveDuplicates();
     }
 
