@@ -24,7 +24,7 @@ import { VisibilityOutlined } from "@mui/icons-material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import SearchIcon from "@mui/icons-material/Search";
-import { Alert, Box, Chip, ChipProps, IconButton, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Tooltip, Typography } from "@mui/material";
+import { Alert, Box, Chip, ChipProps, IconButton, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead, TablePagination, TableRow, TextField, Tooltip, Typography } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -49,6 +49,8 @@ export default function ContractsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contract | null>(null);
   const [removing, setRemoving] = useState<Contract | null>(null);
@@ -87,6 +89,13 @@ export default function ContractsPage() {
     formatDocumento(item.cnpj),
     ...item.fiscais.map(f => f.name)].some(value => value.toLocaleLowerCase("pt-BR").includes(term)));
   }, [contracts, search]);
+
+  // Paginação no cliente (a lista inteira já vem do servidor). A página mostrada nunca passa da última:
+  // se a busca encolher a lista ou o último item da última página for excluído, a tela recua sozinha.
+  const lastPage = Math.max(0, Math.ceil(filtered.length / rowsPerPage) - 1);
+  const currentPage = Math.min(page, lastPage);
+  const paged = useMemo(() => filtered.slice(currentPage * rowsPerPage, currentPage * rowsPerPage + rowsPerPage),
+    [filtered, currentPage, rowsPerPage]);
 
   const active = contracts.filter(item => item.endDate >= today()).length;
   const expiring = contracts.filter(item => { const days = (new Date(item.endDate).getTime() - Date.now()) / 86400000; return days >= 0 && days <= 60; }).length;
@@ -173,7 +182,7 @@ export default function ContractsPage() {
     {expiring > 0 && <Alert severity="warning" sx={{ mb: 2 }}>{expiring} contrato(s) encerram nos próximos 60 dias.</Alert>}
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
       <Box p={2}>
-        <TextField value={search} onChange={event => setSearch(event.target.value)}
+        <TextField value={search} onChange={event => { setSearch(event.target.value); setPage(0); }}
           placeholder="Buscar contrato, empresa, processo ou fiscal" fullWidth
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }} />
       </Box>
@@ -196,7 +205,7 @@ export default function ContractsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.map(item => {
+              {paged.map(item => {
 
                 const status = statusPresentation(item)
 
@@ -286,6 +295,19 @@ export default function ContractsPage() {
             </TableBody>
           </Table>
         </TableContainer>
+      }
+      {!loading && filtered.length > 0 &&
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={currentPage}
+          onPageChange={(_event, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={event => { setRowsPerPage(parseInt(event.target.value, 10)); setPage(0); }}
+          rowsPerPageOptions={[10, 25, 50]}
+          labelRowsPerPage="Linhas por página"
+          labelDisplayedRows={({ from: rowFrom, to: rowTo, count }) => `${rowFrom}–${rowTo} de ${count}`}
+        />
       }
     </Paper>
 
