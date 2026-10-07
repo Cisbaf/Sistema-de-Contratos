@@ -97,6 +97,35 @@ public class Contract {
         return true;
     }
 
+    /**
+     * Recalcula o status depois que o término da vigência foi alterado na edição do contrato (ST-10).
+     * <ul>
+     *   <li>{@code EM_VIGENCIA}: avança para {@code AGUARDANDO_EMAIL_INTERESSE} se o novo término cair na janela de 6 meses;</li>
+     *   <li>{@code AGUARDANDO_EMAIL_INTERESSE}: volta para {@code EM_VIGENCIA} se o novo término ficar a mais de 6 meses;</li>
+     *   <li>{@code EMAIL_ENVIADO} / {@code RENOVACAO_ABERTA_SEI}: a renovação é cancelada (o ciclo era do término antigo)
+     *       e o status é recalculado como se o contrato estivesse em vigência.</li>
+     * </ul>
+     * Devolve {@code true} se o status mudou.
+     */
+    public boolean recalculateStatusForNewEndDate(LocalDate referenceDate) {
+        Objects.requireNonNull(referenceDate, "A data de referência é obrigatória");
+        ContractStatus before = status;
+
+        switch (status) {
+            case AGUARDANDO_EMAIL_INTERESSE -> {
+                if (referenceDate.isBefore(endDate.minusMonths(6))) {
+                    status = ContractStatus.EM_VIGENCIA;
+                }
+            }
+            case EMAIL_ENVIADO, RENOVACAO_ABERTA_SEI -> {
+                status = ContractStatus.EM_VIGENCIA;
+                updateStatusByDeadline(referenceDate);
+            }
+            case EM_VIGENCIA -> updateStatusByDeadline(referenceDate);
+        }
+        return status != before;
+    }
+
     public boolean markInterestEmailSent() {
         if (status != ContractStatus.AGUARDANDO_EMAIL_INTERESSE) {
             return false;

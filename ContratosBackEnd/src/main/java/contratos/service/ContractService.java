@@ -6,6 +6,7 @@ import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.enums.AuditAction;
 import contratos.domain.enums.AuditEntityType;
+import contratos.domain.enums.ContractStatus;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.*;
@@ -80,6 +81,18 @@ public class ContractService {
             throw new ConflictException("Contrato já cadastrado com o numero: " + request.numberContract().trim());
         }
 
+        ContractStatus previousStatus = contract.getStatus();
+        LocalDate previousEndDate = contract.getEndDate();
+        boolean renewalInProgress = previousStatus == ContractStatus.EMAIL_ENVIADO
+                || previousStatus == ContractStatus.RENOVACAO_ABERTA_SEI;
+        boolean datesChanged = !previousEndDate.equals(request.endDate())
+                || !contract.getStartDate().equals(request.startDate());
+
+        // ST-10: com a renovação em andamento, só o Administrador pode mexer nas datas (mexer cancela a renovação).
+        if (renewalInProgress && datesChanged && appUser.getPerfil() != PerfilUsuario.ADMIN) {
+            throw new ConflictException("Com a renovação em andamento, só o Administrador pode alterar as datas da vigência.");
+        }
+
         AuditChangeLog changes = new AuditChangeLog()
                 .field("Valor global", contract.getValueGlobal(), request.valueGlobal())
                 .field("Valor mensal", contract.getValueMensal(), request.valueMensal())
@@ -90,10 +103,16 @@ public class ContractService {
 
         apply(contract, request);
 
-        contractStatusService.updateByDeadline(
-                contract,
-                LocalDate.now()
-        );
+        contractStatusService.recalculateAfterEdit(contract, previousEndDate, appUser, LocalDate.now());
+
+        if (renewalInProgress && contract.getStatus() != previousStatus) {
+            // Renovação cancelada pela mudança de término: confirmações e pareceres do ciclo não valem mais
+            // (mesma limpeza do aditivo). Documentos gerados e anexos ficam.
+            interestRepository.deleteByContract_Id(contract.getId());
+            technicalOpinionRepository.deleteByContract_Id(contract.getId());
+        }
+        changes.field("Status", previousStatus, contract.getStatus());
+
         auditService.record(appUser, AuditAction.UPDATE, AuditEntityType.CONTRACT, contract.getId(),
                 contract.getId(), "Contrato " + contract.getNumberContract() + " atualizado", changes.build());
 
