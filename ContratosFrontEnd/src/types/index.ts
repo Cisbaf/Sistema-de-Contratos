@@ -167,6 +167,12 @@ export interface NotificationLogEntry {
   attemptedAt: string;
 }
 
+export interface NotificationSummary {
+  total: number;
+  enviados: number;
+  falhas: number;
+}
+
 export type AuditAction = "CREATE" | "UPDATE" | "DELETE" | "GENERATE_DOCUMENT" | "UPLOAD_ATTACHMENT" | "REMOVE_ATTACHMENT";
 export type AuditEntityType = "CONTRACT" | "USER" | "SECTOR" | "TEMPLATE" | "LANCAMENTO" | "ATTACHMENT" | "DOCUMENT" | "SETTING";
 

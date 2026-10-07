@@ -4,63 +4,69 @@ import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
 import { getJson } from "@/lib/api";
 import { alertTypeLabels, notificationStatusPresentation, recipientRoleLabels } from "@/lib/notifications";
-import type { NotificationLogEntry } from "@/types";
+import type { NotificationLogEntry, NotificationSummary, Page } from "@/types";
 import SearchIcon from "@mui/icons-material/Search";
 import {
   Box, Chip, InputAdornment, Paper, Stack, Table, TableBody, TableCell, TableContainer,
   TableHead, TablePagination, TableRow, TextField, Tooltip, Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const dateTime = (value: string) => new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 
 export default function NotificationsPage() {
-  const [items, setItems] = useState<NotificationLogEntry[]>([]);
+  const [data, setData] = useState<Page<NotificationLogEntry> | null>(null);
+  const [summary, setSummary] = useState<NotificationSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // o que está na caixa de busca
+  const [search, setSearch] = useState("");           // o que vai para o servidor (depois do debounce)
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [feedback, setFeedback] = useState({ message: "", error: false });
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  // Cards: totais gerais, buscados uma vez (não dependem do filtro nem da página).
   useEffect(() => {
-    getJson<NotificationLogEntry[]>("/notificacoes")
-      .then(setItems)
-      .catch(error => setFeedback({ message: error instanceof Error ? error.message : "Erro ao carregar notificações", error: true }))
-      .finally(() => setLoading(false));
+    getJson<NotificationSummary>("/notificacoes/resumo")
+      .then(setSummary)
+      .catch(error => setFeedback({ message: error instanceof Error ? error.message : "Erro ao carregar o resumo", error: true }));
   }, []);
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLocaleLowerCase("pt-BR");
-    return items.filter(item => {
-      if (term) {
-        const haystack = [item.contractNumber, item.seiProcessNumber, item.recipientName ?? "", item.recipientAddress, ...item.fiscais];
-        if (!haystack.some(value => value.toLocaleLowerCase("pt-BR").includes(term))) return false;
-      }
-      const day = item.attemptedAt.slice(0, 10);
-      if (from && day < from) return false;
-      if (to && day > to) return false;
-      return true;
-    });
-  }, [items, search, from, to]);
+  // Debounce: a busca só vai ao servidor 400 ms depois da última tecla, e volta para a primeira página.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
-  // Volta pra primeira página sempre que o filtro muda, senão a página atual pode ficar vazia.
-  useEffect(() => { setPage(0); }, [search, from, to]);
+  // A página atual, filtrada e paginada no servidor. `ignore` descarta a resposta de uma
+  // chamada antiga que chegue depois de uma mais nova (ex.: digitou "ro" e logo "rob").
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), size: String(rowsPerPage) });
+    if (search) params.set("busca", search);
+    if (from) params.set("dataInicio", from);
+    if (to) params.set("dataFim", to);
 
-  const paged = useMemo(() =>
-    filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage),
-    [filtered, page, rowsPerPage]);
+    getJson<Page<NotificationLogEntry>>(`/notificacoes?${params.toString()}`)
+      .then(result => { if (!ignore) setData(result); })
+      .catch(error => { if (!ignore) setFeedback({ message: error instanceof Error ? error.message : "Erro ao carregar notificações", error: true }); })
+      .finally(() => { if (!ignore) setLoading(false); });
 
-  const total = items.length;
-  const enviados = items.filter(item => item.status === "SENT").length;
-  const falhas = items.filter(item => item.status === "FAILED").length;
+    return () => { ignore = true; };
+  }, [search, from, to, page, rowsPerPage]);
+
+  const items = data?.content ?? [];
 
   return <>
     <PageHeader title="Notificações" subtitle="Alertas de vencimento de contrato (6 e 4 meses) enviados por e-mail ao fiscal e ao Controle Interno." />
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
-      {[{ label: "Total de tentativas", value: total }, { label: "Enviados", value: enviados },
-      { label: "Falhas", value: falhas }].map(card =>
+      {[{ label: "Total de tentativas", value: summary?.total ?? "—" }, { label: "Enviados", value: summary?.enviados ?? "—" },
+      { label: "Falhas", value: summary?.falhas ?? "—" }].map(card =>
         <Paper key={card.label} variant="outlined" sx={{ p: 2.5 }}>
           <Typography color="text.secondary" variant="body2">{card.label}</Typography>
           <Typography variant="h5" fontWeight={800} mt={.5}>{card.value}</Typography>
@@ -69,12 +75,12 @@ export default function NotificationsPage() {
 
     <Paper variant="outlined" sx={{ overflow: "hidden" }}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2} p={2}>
-        <TextField value={search} onChange={event => setSearch(event.target.value)}
+        <TextField value={searchInput} onChange={event => setSearchInput(event.target.value)}
           placeholder="Buscar por contrato, SEI, fiscal ou destinatário" fullWidth
           slotProps={{ input: { startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment> } }} />
-        <TextField label="De" type="date" value={from} onChange={event => setFrom(event.target.value)}
+        <TextField label="De" type="date" value={from} onChange={event => { setFrom(event.target.value); setPage(0); }}
           slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: { sm: 160 } }} />
-        <TextField label="Até" type="date" value={to} onChange={event => setTo(event.target.value)}
+        <TextField label="Até" type="date" value={to} onChange={event => { setTo(event.target.value); setPage(0); }}
           slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: { sm: 160 } }} />
       </Stack>
 
@@ -94,7 +100,7 @@ export default function NotificationsPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {paged.map(item => {
+              {items.map(item => {
                 const status = notificationStatusPresentation[item.status];
                 return (
                   <TableRow key={item.id} hover>
@@ -117,7 +123,7 @@ export default function NotificationsPage() {
                   </TableRow>
                 );
               })}
-              {filtered.length === 0 &&
+              {items.length === 0 &&
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 8, color: "text.secondary" }}>Nenhuma notificação encontrada.</TableCell>
                 </TableRow>
@@ -126,10 +132,10 @@ export default function NotificationsPage() {
           </Table>
         </TableContainer>
       }
-      {!loading && filtered.length > 0 &&
+      {!loading && data && data.totalElements > 0 &&
         <TablePagination
           component="div"
-          count={filtered.length}
+          count={data.totalElements}
           page={page}
           onPageChange={(_event, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
