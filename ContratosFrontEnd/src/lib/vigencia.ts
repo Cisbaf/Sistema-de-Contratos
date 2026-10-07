@@ -26,7 +26,7 @@ export function tempoRestante(endDate: string, hoje: Date = new Date()): TempoRe
   const hojeUtc = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
   const dias = Math.round((fim.getTime() - hojeUtc) / DIA_MS);
 
-  if (dias < 0) return { label: "Vencido", color: "error" };
+  if (estaVencido(endDate, hoje)) return { label: "Vencido", color: "error" };
   if (hojeUtc < menosMeses(fim, JANELA_MESES)) return null;
 
   if (dias === 0) return { label: "Vence hoje", color: "error" };
@@ -37,6 +37,14 @@ export function tempoRestante(endDate: string, hoje: Date = new Date()): TempoRe
   const label = semanas === 1 ? "Falta 1 semana" : `Faltam ${semanas} semanas`;
   return { label, color: dias <= 56 ? "warning" : "default" };
 }
+
+export function estaVencido(endDate: string, hoje: Date = new Date()): boolean {
+  const fim = new Date(`${endDate}T00:00:00Z`);
+  if (Number.isNaN(fim.getTime())) return false;
+  const hojeUtc = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  return fim.getTime() < hojeUtc;
+}
+
 
 // Faixa permitida para os lançamentos financeiros: do mês de início ao mês de término da vigência (inclusive).
 // Espelha a regra do backend (LancamentoFinanceiroService); o backend continua sendo quem decide.

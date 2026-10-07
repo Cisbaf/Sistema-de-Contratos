@@ -6,8 +6,8 @@ import ContractAttachmentsDialog from "@/components/contracts/ContractAttachment
 import ContractDetailsDrawer from "@/components/contracts/ContractDetailsDrawer";
 import ContractFinancialDrawer from "@/components/contracts/ContractFinancialDrawer";
 import ContractFormDialog, { ContractFormPayload } from "@/components/contracts/ContractFormDialog";
-import ContractTimelineDialog from "@/components/contracts/ContractTimelineDialog";
 import ContractNotificationsDrawer from "@/components/contracts/ContractNotificationsDrawer";
+import ContractTimelineDialog from "@/components/contracts/ContractTimelineDialog";
 import GeneratedDocumentsDialog from "@/components/contracts/GeneratedDocumentsDialog";
 import InterestEmailDialog from "@/components/contracts/InterestEmailDialog";
 import SupplierMaskDialog from "@/components/contracts/SupplierMaskDialog";
@@ -18,6 +18,7 @@ import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
 import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
 import { formatDocumento } from "@/lib/formatters";
+import { estaVencido } from "@/lib/vigencia";
 import type { Contract, ContractStatus, User } from "@/types";
 import { VisibilityOutlined } from "@mui/icons-material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -109,6 +110,12 @@ export default function ContractsPage() {
       color: "secondary",
     },
   }
+  function statusPresentation(contract: Contract) {
+    if (contract.status === "EM_VIGENCIA" && estaVencido(contract.endDate)) {
+      return { label: "Vencido", color: "error" } as { label: string; color: ChipProps["color"] };
+    }
+    return contractStatusPresentation[contract.status];
+  }
 
 
   function create() {
@@ -191,7 +198,7 @@ export default function ContractsPage() {
             <TableBody>
               {filtered.map(item => {
 
-                const status = contractStatusPresentation[item.status]
+                const status = statusPresentation(item)
 
                 return (
                   <TableRow key={item.id} hover>
@@ -319,7 +326,7 @@ export default function ContractsPage() {
     <ContractDetailsDrawer
       open={detailsOpen}
       contract={detailsContract}
-      status={detailsContract ? contractStatusPresentation[detailsContract.status] : null}
+      status={detailsContract ? statusPresentation(detailsContract) : null}
       canManage={canManageContracts}
       onClose={() => setDetailsOpen(false)}
       onEmail={setEmailContract}
