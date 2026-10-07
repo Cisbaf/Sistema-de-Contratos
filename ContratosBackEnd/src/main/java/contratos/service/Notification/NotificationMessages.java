@@ -1,5 +1,6 @@
 package contratos.service.Notification;
 
+import contratos.validation.DocumentoFiscal;
 import contratos.api.dto.Notificacao.NotificationMessage;
 import contratos.api.dto.Notificacao.Recipient;
 import contratos.domain.AppUser;
@@ -44,7 +45,7 @@ public final class NotificationMessages {
         String text = "Prezado(a) " + recipient.name() + ",\n\n"
                 + intro + "\n\n"
                 + "Contrato: " + contract.getNumberContract() + "\n"
-                + "Empresa: " + contract.getCompany() + " (CNPJ " + contract.getCnpj() + ")\n"
+                + "Empresa: " + contract.getCompany() + " (" + DocumentoFiscal.rotulo(contract.getCnpj()) + " " + contract.getCnpj() + ")\n"
                 + "Objeto: " + contract.getObject() + "\n"
                 + "Processo: " + contract.getNumberProcess() + "\n"
                 + "Término da vigência: " + endDate + "\n"

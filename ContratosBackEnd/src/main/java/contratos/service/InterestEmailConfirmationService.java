@@ -1,5 +1,6 @@
 package contratos.service;
 
+import contratos.validation.DocumentoFiscal;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
@@ -142,11 +143,12 @@ public class InterestEmailConfirmationService {
                 
                 Contrato: %s
                 Empresa: %s
-                CNPJ: %s
+                %s: %s
                 Mês/ano de geração: %s
                 
                 E-mail de interesse confirmado como enviado por: %s
-                """.formatted(contract.getNumberContract(), contract.getCompany(), contract.getCnpj(),
+                """.formatted(contract.getNumberContract(), contract.getCompany(),
+                DocumentoFiscal.rotulo(contract.getCnpj()), contract.getCnpj(),
                 hoje.format(MONTH_YEAR_FMT), nomes);
     }
 

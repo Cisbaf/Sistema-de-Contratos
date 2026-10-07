@@ -10,6 +10,7 @@ import contratos.domain.enums.ContractStatus;
 import contratos.domain.enums.PerfilUsuario;
 import contratos.exception.ConflictException;
 import contratos.repository.*;
+import contratos.validation.DocumentoFiscal;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -194,7 +195,7 @@ public class ContractService {
                 request.numberProcess().trim(),
                 request.object().trim(),
                 request.company().trim(),
-                normalizeCnpj(request.cnpj().trim()),
+                DocumentoFiscal.normalizar(request.cnpj()),
                 request.valueGlobal(),
                 request.valueMensal(),
                 request.startDate(),
@@ -209,10 +210,6 @@ public class ContractService {
         if (request.endDate().isBefore(request.startDate())) {
             throw new IllegalArgumentException("A data final não pode ser anterior à data inicial");
         }
-    }
-
-    private String normalizeCnpj(String value) {
-        return value.replaceAll("\\D", "");
     }
 
     private String blankToNull(String value) {

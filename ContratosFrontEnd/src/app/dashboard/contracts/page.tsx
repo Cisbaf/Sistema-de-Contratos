@@ -17,7 +17,7 @@ import { useAuth } from "@/components/DashboardShell";
 import { Feedback, PageLoading } from "@/components/Feedback";
 import PageHeader from "@/components/PageHeader";
 import { deleteJson, getJson, postJson, putJson } from "@/lib/api";
-import { formatCnpj } from "@/lib/formatters";
+import { formatDocumento } from "@/lib/formatters";
 import type { Contract, ContractStatus, User } from "@/types";
 import { VisibilityOutlined } from "@mui/icons-material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -83,7 +83,7 @@ export default function ContractsPage() {
     const term = search.trim().toLocaleLowerCase("pt-BR");
     if (!term) return contracts;
     return contracts.filter(item => [item.numberContract, item.numberProcess, item.object, item.company, item.cnpj,
-    formatCnpj(item.cnpj),
+    formatDocumento(item.cnpj),
     ...item.fiscais.map(f => f.name)].some(value => value.toLocaleLowerCase("pt-BR").includes(term)));
   }, [contracts, search]);
 
@@ -197,7 +197,7 @@ export default function ContractsPage() {
                   <TableRow key={item.id} hover>
                     <TableCell>
                       <Typography fontWeight={700}>{item.numberContract}</Typography>
-                      <Typography variant="caption" color="text.secondary">{formatCnpj(item.cnpj)}</Typography>
+                      <Typography variant="caption" color="text.secondary">{formatDocumento(item.cnpj)}</Typography>
                     </TableCell>
                     <TableCell>
                       <Typography >{item.seiProcessNumber}</Typography>

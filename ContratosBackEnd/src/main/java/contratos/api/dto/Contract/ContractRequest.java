@@ -1,7 +1,7 @@
 package contratos.api.dto.Contract;
 
 import jakarta.validation.constraints.*;
-import org.hibernate.validator.constraints.br.CNPJ;
+import contratos.validation.CpfOuCnpj;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,7 +12,7 @@ public record ContractRequest(
         @NotBlank @Size(max = 200) String numberProcess,
         @NotBlank String object,
         @NotBlank @Size(max = 200) String company,
-        @NotBlank @Size(max = 30) @CNPJ(message = "CNPJ inválido") String cnpj,
+        @NotBlank @Size(max = 30) @CpfOuCnpj(message = "CPF ou CNPJ inválido") String cnpj,
         @NotNull @DecimalMin("0.00") BigDecimal valueGlobal,
         @NotNull @DecimalMin("0.00") BigDecimal valueMensal,
         @NotNull LocalDate startDate,
