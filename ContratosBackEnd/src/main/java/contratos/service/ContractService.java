@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,12 +41,12 @@ public class ContractService {
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findAll() {
-        return contracts.findAll().stream().map(contract -> EntityMapper.contract(contract, getConfirmadosId(contract.getId()))).toList();
+        return toResponses(contracts.findAll());
     }
 
     @Transactional(readOnly = true)
     public List<ContractResponse> findMine(String username) {
-        return contracts.findDistinctByFiscaisUsername(username).stream().map(contract -> EntityMapper.contract(contract, getConfirmadosId(contract.getId()))).toList();
+        return toResponses(contracts.findDistinctByFiscaisUsername(username));
     }
 
     @Transactional(readOnly = true)
@@ -214,5 +215,18 @@ public class ContractService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private List<ContractResponse> toResponses(List<Contract> list) {
+        if (list.isEmpty()) return List.of();
+        Map<Long, List<Long>> confirmados = interestRepository
+                .findConfirmacoes(list.stream().map(Contract::getId).toList())
+                .stream()
+                .collect(Collectors.groupingBy(
+                        InterestEmailConfirmationRepository.Confirmacao::getContractId,
+                        Collectors.mapping(InterestEmailConfirmationRepository.Confirmacao::getFiscalId, Collectors.toList())));
+        return list.stream()
+                .map(c -> EntityMapper.contract(c, confirmados.getOrDefault(c.getId(), List.of())))
+                .toList();
     }
 }
