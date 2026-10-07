@@ -90,8 +90,8 @@ class NotificationQueryServiceTest {
     }
 
     @Test
-    void listaGeralTrazTodosOsContratos() {
-        List<NotificationLogResponse> result = service.listAll();
+    void buscaSemFiltroTrazTodosOsContratos() {
+        List<NotificationLogResponse> result = service.search(null, null, null, 0, 20).getContent();
 
         assertThat(result).hasSize(2);
         assertThat(result).extracting(NotificationLogResponse::contractNumber)
