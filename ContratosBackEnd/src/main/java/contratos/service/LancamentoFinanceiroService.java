@@ -3,6 +3,7 @@ package contratos.service;
 import contratos.api.dto.LancamentoFinanceiro.LancamentoFinanceiroHistoricoResponse;
 import contratos.api.dto.LancamentoFinanceiro.LancamentoFinanceiroRequest;
 import contratos.api.dto.LancamentoFinanceiro.LancamentoFinanceiroResponse;
+import contratos.api.dto.LancamentoFinanceiro.LancamentoForaDaFaixaResponse;
 import contratos.domain.AppUser;
 import contratos.domain.Contract;
 import contratos.domain.LancamentoFinanceiro;
@@ -27,9 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -174,6 +174,26 @@ public class LancamentoFinanceiroService {
         return repository.findByContrato_IdAndAtivoTrue(contratoId).stream().map(this::mapResponse).toList();
     }
 
+    /**
+     * LC-10: lançamentos ativos que ficariam fora da faixa se o contrato passasse a ter estas datas. Só consulta,
+     * não grava nada; a tela de edição do contrato usa para avisar antes de salvar.
+     */
+    @Transactional(readOnly = true)
+    public List<LancamentoForaDaFaixaResponse> listarForaDaFaixa(Long contratoId, LocalDate startDate, LocalDate endDate) {
+        buscarContrato(contratoId);
+        if (endDate.isBefore(startDate)) {
+            throw new IllegalArgumentException("A data final não pode ser anterior à data inicial");
+        }
+        FaixaLancamento faixa = FaixaLancamento.de(startDate, endDate);
+        return repository.findByContrato_IdAndAtivoTrue(contratoId).stream()
+                .map(l -> new LancamentoForaDaFaixaResponse(l.getId(), l.getNotaFiscal(), l.getCompetencia(), l.getParcela(),
+                        !faixa.competenciaDentro(l.getCompetencia()), !faixa.parcelaDentro(l.getParcela())))
+                .filter(r -> r.competenciaFora() || r.parcelaFora())
+                .sorted(Comparator.comparing(LancamentoForaDaFaixaResponse::competencia)
+                        .thenComparing(LancamentoForaDaFaixaResponse::id))
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<LancamentoFinanceiroHistoricoResponse> listarHistoricoPorContrato(Long contratoId) {
         buscarContrato(contratoId);
@@ -228,23 +248,13 @@ public class LancamentoFinanceiroService {
     }
 
     private void validarCompetenciaEParcela(Contract c, LocalDate competencia, String parcela) {
-        YearMonth inicio = YearMonth.from(c.getStartDate());
-        YearMonth fim = YearMonth.from(c.getEndDate());
-        YearMonth comp = YearMonth.from(competencia);
-        if (comp.isBefore(inicio) || comp.isAfter(fim)) {
-            throw new IllegalArgumentException("Competência deve estar entre " + fmt(inicio) + " e " + fmt(fim) + " (vigência do contrato)");
+        FaixaLancamento faixa = FaixaLancamento.de(c.getStartDate(), c.getEndDate());
+        if (!faixa.competenciaDentro(competencia)) {
+            throw new IllegalArgumentException("Competência deve estar entre " + faixa.inicioFmt() + " e " + faixa.fimFmt() + " (vigência do contrato)");
         }
-        String p = vazioParaNull(parcela);
-        if (p != null) {
-            int total = (int) ChronoUnit.MONTHS.between(inicio, fim) + 1;
-            if (Integer.parseInt(p) > total) {
-                throw new IllegalArgumentException("Parcela deve estar entre 1 e " + total + " (meses de vigência)");
-            }
+        if (!faixa.parcelaDentro(parcela)) {
+            throw new IllegalArgumentException("Parcela deve estar entre 1 e " + faixa.totalParcelas() + " (meses de vigência)");
         }
-    }
-
-    private static String fmt(YearMonth ym) {
-        return ym.format(DateTimeFormatter.ofPattern("MM/yyyy"));
     }
 
     private Contract buscarContrato(Long contratoId) {

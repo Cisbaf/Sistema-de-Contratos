@@ -260,6 +260,8 @@ class RbacMatrixIntegrationTest {
             c("POST /contracts/{id}/lancamentos", t -> json(post("/api/contracts/" + t.contractId + "/lancamentos"), LANCAMENTO_JSON), ACF),
             c("GET /contracts/{id}/lancamentos", t -> get("/api/contracts/" + t.contractId + "/lancamentos"), ACF),
             c("GET /contracts/{id}/lancamentos/saldo", t -> get("/api/contracts/" + t.contractId + "/lancamentos/saldo"), ACF),
+            c("GET /contracts/{id}/lancamentos/fora-da-faixa", t -> get("/api/contracts/" + t.contractId + "/lancamentos/fora-da-faixa")
+                    .param("startDate", "2026-01-01").param("endDate", "2027-12-31"), ACF),
             c("GET /contracts/{id}/lancamentos/historico", t -> get("/api/contracts/" + t.contractId + "/lancamentos/historico"), ACF),
             c("PUT /lancamentos/{id}", t -> json(put("/api/lancamentos/" + t.lancamentoId), LANCAMENTO_JSON), ACF),
             c("DELETE /lancamentos/{id}", t -> delete("/api/lancamentos/" + t.lancamentoId), ACF),
@@ -307,8 +309,8 @@ class RbacMatrixIntegrationTest {
 
     @Test
     void matrizCobreTodosOsEndpointsEsperados() {
-        // trava contra "esquecer" uma linha ao editar a matriz: 48 endpoints protegidos x 5 perfis
-        assertThat(cases()).hasSize(50);
+        // trava contra "esquecer" uma linha ao editar a matriz: 51 endpoints protegidos x 5 perfis
+        assertThat(cases()).hasSize(51);
         assertThat(cases().stream().map(Case::name)).doesNotHaveDuplicates();
     }
 
