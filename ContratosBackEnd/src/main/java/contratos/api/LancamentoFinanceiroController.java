@@ -4,18 +4,21 @@ import contratos.api.dto.GeneratedDocument.GeneratedDocumentResponse;
 import contratos.api.dto.LancamentoFinanceiro.LancamentoFinanceiroHistoricoResponse;
 import contratos.api.dto.LancamentoFinanceiro.LancamentoFinanceiroRequest;
 import contratos.api.dto.LancamentoFinanceiro.LancamentoFinanceiroResponse;
+import contratos.api.dto.LancamentoFinanceiro.LancamentoForaDaFaixaResponse;
 import contratos.api.dto.LancamentoFinanceiro.PaymentChecklistPreviewResponse;
 import contratos.api.dto.LancamentoFinanceiro.SaldoContratoResponse;
 import contratos.service.LancamentoFinanceiroService;
 import contratos.service.PaymentChecklistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -44,6 +47,16 @@ public class LancamentoFinanceiroController {
     @PreAuthorize("@contractAuthorization.canRead(#contratoId, authentication)")
     public ResponseEntity<SaldoContratoResponse> saldo(@PathVariable Long contratoId) {
         return ResponseEntity.ok(new SaldoContratoResponse(service.calcularSaldo(contratoId)));
+    }
+
+    /** LC-10: lançamentos que ficariam fora da vigência se o contrato passasse a ter estas datas (só consulta). */
+    @GetMapping("/contracts/{contratoId}/lancamentos/fora-da-faixa")
+    @PreAuthorize("@contractAuthorization.canRead(#contratoId, authentication)")
+    public ResponseEntity<List<LancamentoForaDaFaixaResponse>> foraDaFaixa(
+            @PathVariable Long contratoId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(service.listarForaDaFaixa(contratoId, startDate, endDate));
     }
 
     @GetMapping("/contracts/{contratoId}/lancamentos/historico")
