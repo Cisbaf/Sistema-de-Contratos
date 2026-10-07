@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCnpj } from "@/lib/formatters";
+import { formatDocumento, rotuloDocumento } from "@/lib/formatters";
 import VigenciaChip from "./VigenciaChip";
 import type { Contract } from "@/types";
 import {
@@ -87,7 +87,7 @@ export default function ContractDetailsDrawer({
                     sx={{ gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}
                 >
                     <Campo label="Empresa">{contract.company}</Campo>
-                    <Campo label="CNPJ">{formatCnpj(contract.cnpj)}</Campo>
+                    <Campo label={rotuloDocumento(contract.cnpj)}>{formatDocumento(contract.cnpj)}</Campo>
                     <Box sx={{ gridColumn: { sm: "1 / -1" } }}>
                         <Campo label="Objeto">{contract.object}</Campo>
                     </Box>

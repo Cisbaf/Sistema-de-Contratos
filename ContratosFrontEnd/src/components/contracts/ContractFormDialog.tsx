@@ -1,7 +1,7 @@
 "use client"
 
 import { getJson } from "@/lib/api";
-import { formatCnpj, isValidCnpj } from "@/lib/formatters";
+import { formatDocumento, isValidDocumento, normalizeDocumento, rotuloDocumento } from "@/lib/formatters";
 import { faixaDeLancamento } from "@/lib/vigencia";
 import { Contract, LancamentoForaDaFaixa, User } from "@/types";
 import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControl, FormHelperText, InputLabel, MenuItem, OutlinedInput, Select, TextField, Typography } from "@mui/material";
@@ -73,6 +73,14 @@ export default function ContractFormDialog({ open, contract, users, isAdmin, onC
     const [form, setForm] = useState<ContractFormState>(emptyForm());
     const [fiscalError, setFiscalError] = useState("");
     const [saving, setSaving] = useState(false);
+    // CPF (11) ou CNPJ (14): enquanto digita não mostra erro nem máscara; valida e formata ao sair do campo ou ao salvar.
+    const [documentoTouched, setDocumentoTouched] = useState(false);
+    const documentoTamanho = normalizeDocumento(form.cnpj).length;
+    const documentoError = !documentoTouched || documentoTamanho === 0 || isValidDocumento(form.cnpj)
+        ? ""
+        : (documentoTamanho === 11 || documentoTamanho === 14
+            ? `${rotuloDocumento(form.cnpj)} inválido`
+            : "Informe um CPF (11 dígitos) ou um CNPJ (14 caracteres)");
     // Confirmação única antes de salvar: ST-10 (cancelar renovação, só Administrador) e/ou LC-10 (lançamentos fora da nova vigência).
     const [confirmation, setConfirmation] = useState<{ cancelRenewal: boolean; afetados: LancamentoForaDaFaixa[] } | null>(null);
     // ST-10: com a renovação em andamento só o Administrador mexe nas datas, e mexer no fim cancela a renovação.
@@ -89,6 +97,7 @@ export default function ContractFormDialog({ open, contract, users, isAdmin, onC
         }
         setFiscalError("");
         setConfirmation(null);
+        setDocumentoTouched(false);
 
         if (!contract) {
             setForm(emptyForm());
@@ -99,7 +108,7 @@ export default function ContractFormDialog({ open, contract, users, isAdmin, onC
             numberProcess: contract.numberProcess,
             object: contract.object,
             company: contract.company,
-            cnpj: formatCnpj(contract.cnpj),
+            cnpj: formatDocumento(contract.cnpj),
             valueGlobal: String(contract.valueGlobal),
             valueMensal: String(contract.valueMensal),
             startDate: contract.startDate,
@@ -131,8 +140,10 @@ export default function ContractFormDialog({ open, contract, users, isAdmin, onC
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        if (!isValidCnpj(form.cnpj)) {
-            onError("CNPJ inválido");
+        if (!isValidDocumento(form.cnpj)) {
+            setDocumentoTouched(true);
+            field("cnpj", formatDocumento(form.cnpj));
+            onError("CPF ou CNPJ inválido");
             return;
         }
 
@@ -202,9 +213,12 @@ export default function ContractFormDialog({ open, contract, users, isAdmin, onC
                             onChange={e => field("object", e.target.value)} required multiline minRows={3} sx={{ gridColumn: "1 / -1" }}
                         />
                         <TextField label="Empresa" value={form.company} onChange={e => field("company", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
-                        <TextField label="CNPJ" value={form.cnpj}
-                            onChange={e => field("cnpj", formatCnpj(e.target.value))} required
-                            slotProps={{ htmlInput: { inputMode: "numeric", maxLength: 18 } }}
+                        <TextField label="CNPJ/CPF" value={form.cnpj}
+                            onChange={e => { setDocumentoTouched(false); field("cnpj", normalizeDocumento(e.target.value)); }} required
+                            onFocus={() => field("cnpj", normalizeDocumento(form.cnpj))}
+                            onBlur={() => { setDocumentoTouched(true); field("cnpj", formatDocumento(form.cnpj)); }}
+                            error={documentoError !== ""} helperText={documentoError || undefined}
+                            slotProps={{ htmlInput: { inputMode: "text", maxLength: 18 } }}
                             sx={{ gridColumn: { sm: "span 2" } }}
                         />
                         <TextField label="Nº Processo SEI" value={form.seiProcessNumber} onChange={e => field("seiProcessNumber", e.target.value)} required sx={{ gridColumn: { sm: "span 2" } }} />
