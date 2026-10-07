@@ -40,6 +40,33 @@ public class ContractStatusService {
         return true;
     }
 
+    /**
+     * ST-10 — chamado depois de aplicar a edição do contrato. Se o término da vigência não mudou, mantém o
+     * comportamento antigo (só avança por prazo, gatilho {@code DEADLINE}). Se mudou, recalcula o status nos dois
+     * sentidos (inclusive cancelando a renovação) e grava uma única linha de histórico, gatilho {@code CONTRACT_EDITED}.
+     * Quem chama é responsável por apagar confirmações e pareceres quando a renovação for cancelada.
+     */
+    @Transactional
+    public boolean recalculateAfterEdit(Contract contract, LocalDate previousEndDate, AppUser actor, LocalDate referenceDate) {
+        Objects.requireNonNull(contract, "O contrato é obrigatório.");
+        Objects.requireNonNull(previousEndDate, "O término anterior é obrigatório.");
+        Objects.requireNonNull(referenceDate, "A data de referencia é obrigatória.");
+
+        if (previousEndDate.equals(contract.getEndDate())) {
+            return updateByDeadline(contract, referenceDate);
+        }
+
+        var previousStatus = contract.getStatus();
+        if (!contract.recalculateStatusForNewEndDate(referenceDate)) return false;
+
+        repository.save(new ContractStatusHistory(
+                LocalDateTime.now(ZoneId.of("America/Sao_Paulo")),
+                actor, contract, previousStatus, contract.getStatus(),
+                ContractStatusTrigger.CONTRACT_EDITED
+        ));
+        return true;
+    }
+
     @Transactional
     public int updateAllByDeadline(LocalDate referenceDate){
         Objects.requireNonNull(referenceDate, "A data de referencia é requerida");

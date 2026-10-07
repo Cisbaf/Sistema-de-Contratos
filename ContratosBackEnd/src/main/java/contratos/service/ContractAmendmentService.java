@@ -91,6 +91,9 @@ public class ContractAmendmentService {
         interestRepository.deleteByContract_Id(contractId);
         technicalOpinionRepository.deleteByContract_Id(contractId);
 
+        // ST-10: a data nova pode já cair na janela de 6 meses; nesse caso o contrato segue para "Aguardando e-mail".
+        contractStatusService.updateByDeadline(contract, LocalDate.now());
+
         String details = new AuditChangeLog()
                 .field("Término da vigência", previousEndDate, contract.getEndDate())
                 .field("Status", previousStatus, contract.getStatus())
