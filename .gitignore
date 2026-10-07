@@ -626,3 +626,5 @@ MODULO_6_ADMINISTRACAO_AUDITORIA_PLANO_GUIADO.md
 
 # Anexos dos contratos em disco (ANX-10): arquivos de dados, nunca vão para o Git.
 storage/
+deploy/COMO_SUBIR.md
+MODULO_7_PRODUCAO_PLANO_GUIADO.md
