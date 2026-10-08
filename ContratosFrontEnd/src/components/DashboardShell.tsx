@@ -6,6 +6,7 @@ import ApartmentOutlinedIcon from "@mui/icons-material/ApartmentOutlined";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import LogoutOutlinedIcon from "@mui/icons-material/LogoutOutlined";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -18,6 +19,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, type ReactNode, useContext, useEffect, useState } from "react";
 
 const drawerWidth = 252;
+const ajudaHref = "/dashboard/ajuda";
 const AuthContext = createContext<AuthStatus>({ valid: false });
 export const useAuth = () => useContext(AuthContext);
 
@@ -82,6 +84,12 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: pathname === item.href ? 700 : 500 }} /></ListItemButton>
     )}
     </List>
+    <List sx={{ px: 1.5, pb: 1 }}>
+      <ListItemButton component={Link} href={ajudaHref} selected={pathname === ajudaHref}
+        onClick={() => setMobileOpen(false)} sx={{ borderRadius: 2 }}>
+        <ListItemIcon sx={{ minWidth: 40 }}><HelpOutlineIcon /></ListItemIcon>
+        <ListItemText primary="Ajuda" primaryTypographyProps={{ fontWeight: pathname === ajudaHref ? 700 : 500 }} /></ListItemButton>
+    </List>
     <Divider />
     <Stack direction="row" alignItems="center" spacing={1.5} p={2}>
       <Avatar sx={{ width: 38, height: 38 }}>{auth?.name?.charAt(0) ?? "U"}</Avatar>
@@ -104,6 +112,11 @@ export default function DashboardShell({ children }: { children: ReactNode }) {
         <Typography fontWeight={800}>Controle de Contratos</Typography>
       </Stack>
       <Stack direction="row" alignItems="center" spacing={1.5}>
+        <Tooltip title="Ajuda">
+          <IconButton component={Link} href={ajudaHref} size="small" aria-label="Ajuda">
+            <HelpOutlineIcon />
+          </IconButton>
+        </Tooltip>
         <Avatar sx={{ width: 38, height: 38 }}>{auth?.name?.charAt(0) ?? "U"}</Avatar>
         <Box minWidth={0}>
           <Typography variant="body2" fontWeight={700} noWrap>{auth?.name ?? "Usuário"}</Typography>
