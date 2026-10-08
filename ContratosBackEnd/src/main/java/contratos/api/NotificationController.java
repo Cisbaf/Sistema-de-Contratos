@@ -39,9 +39,8 @@ public class NotificationController {
                                                                @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
                                                                @RequestParam(defaultValue = "0") int page,
                                                                @RequestParam(defaultValue = "20") int size) {
-        if (size > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("O tamanho máximo da página é " + MAX_PAGE_SIZE);
-        }
+        PageParams.validate(page, size);
+
         return ResponseEntity.ok(service.search(busca, dataInicio,dataFim,page, size));
     }
 
