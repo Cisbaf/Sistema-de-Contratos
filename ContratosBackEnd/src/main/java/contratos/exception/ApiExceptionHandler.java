@@ -1,8 +1,7 @@
-package contratos.api;
+package contratos.exception;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
-
+import contratos.api.dto.ApiErrorResponse;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,14 +10,15 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-import contratos.api.dto.ApiErrorResponse;
-import contratos.exception.AttachmentStorageException;
-import contratos.exception.ConflictException;
-import jakarta.persistence.EntityNotFoundException;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -54,6 +54,7 @@ public class ApiExceptionHandler {
     ResponseEntity<ApiErrorResponse> badRequest(IllegalArgumentException exception) {
         return response(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
+
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiErrorResponse> badMessageRequest() {
         return response(HttpStatus.BAD_REQUEST, "Corpo da requisição ausente ou malformado");
@@ -74,9 +75,30 @@ public class ApiExceptionHandler {
         return response(HttpStatus.FORBIDDEN, "Você não tem permissão para esta operação");
     }
 
-        @ExceptionHandler(MaxUploadSizeExceededException.class)
-    ResponseEntity<ApiErrorResponse> maxUplodSize() {
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiErrorResponse> maxUploadSize() {
         return response(HttpStatus.BAD_REQUEST, "Arquivos enviados passam do tamanho máximo permitido");
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiErrorResponse> argumentType(MethodArgumentTypeMismatchException e) {
+        var tipo = e.getRequiredType();
+        String dica;
+
+        if (tipo == LocalDate.class) {
+            dica = ": use uma data no formato AAAA-MM-DD";
+        } else if (tipo != null && Number.class.isAssignableFrom(tipo)) {
+            dica = ": use um número inteiro";
+        } else {
+            dica = ": valor não reconhecido";
+        }
+
+        return response(HttpStatus.BAD_REQUEST, "Parâmetro '" + e.getName() + "' inválido" + dica);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    ResponseEntity<ApiErrorResponse> MissingParameter(MissingServletRequestParameterException e) {
+        return response(HttpStatus.BAD_REQUEST, "Parâmetro obrigatório ausente: '" + e.getParameterName() + "'");
     }
 
     private ResponseEntity<ApiErrorResponse> response(HttpStatus status, String message) {

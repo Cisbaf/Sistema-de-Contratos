@@ -49,14 +49,13 @@ public class GeneratedDocumentController {
             @RequestParam(required = false) Long contractId,
             @RequestParam(required = false) DocumentTemplateType documentType,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)LocalDate dataFim,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
             @RequestParam(required = false) Long authorId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        if (size > MAX_PAGE_SIZE) {
-            throw new IllegalArgumentException("O tamanho máximo da página é " + MAX_PAGE_SIZE);
-        }
+        PageParams.validate(page, size);
+
         var fromDate = dataInicio != null ? dataInicio.atStartOfDay() : null;
         var toDate = dataFim != null ? dataFim.plusDays(1).atStartOfDay() : null;
 
