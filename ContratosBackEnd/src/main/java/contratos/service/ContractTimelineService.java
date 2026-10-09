@@ -1,6 +1,7 @@
 package contratos.service;
 
 import contratos.api.dto.Contract.ContractTimelineEvent;
+import contratos.repository.AuditLogRepository;
 import contratos.repository.ContractAttachmentRepository;
 import contratos.repository.ContractRepository;
 import contratos.repository.ContractStatusHistoryRepository;
@@ -16,9 +17,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Linha do tempo unificada do contrato: junta mudanças de status, documentos gerados e anexos (envio e remoção) numa
- * lista só, do mais recente para o mais antigo. Lê direto das tabelas de cada assunto (e não da auditoria), então
- * mostra também o que aconteceu antes da auditoria existir. A permissão é checada no controller (canRead).
+ * Linha do tempo unificada do contrato: junta mudanças de status, documentos gerados, anexos (envio e remoção) e
+ * exclusões de lançamento numa lista só, do mais recente para o mais antigo. Lê direto das tabelas de cada assunto, então
+ * mostra também o que aconteceu antes da auditoria existir; só as exclusões de lançamento/ateste vêm da auditoria
+ * (EXC-10), porque a linha original deixa de existir. A permissão é checada no controller (canRead).
  */
 @Service
 @RequiredArgsConstructor
@@ -27,6 +29,7 @@ public class ContractTimelineService {
     private final ContractStatusHistoryRepository statusHistoryRepository;
     private final GeneratedDocumentRepository documentRepository;
     private final ContractAttachmentRepository attachmentRepository;
+    private final AuditLogRepository auditLogRepository;
 
     @Transactional(readOnly = true)
     public List<ContractTimelineEvent> timeline(Long contractId) {
@@ -43,6 +46,8 @@ public class ContractTimelineService {
         events.addAll(documentRepository.timeline(contractId));
         events.addAll(attachmentRepository.timelineRemovals(contractId));
         events.addAll(attachmentRepository.timelineUploads(contractId));
+        // Exclusões não deixam linha própria nas tabelas de origem (o lançamento e o ateste somem), então vêm da auditoria.
+        events.addAll(auditLogRepository.timelineDeletions(contractId));
 
         events.sort(Comparator.comparing(ContractTimelineEvent::occurredAt).reversed());
         return events;
