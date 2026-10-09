@@ -6,6 +6,7 @@ import contratos.domain.enums.DocumentTemplateType;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -21,6 +22,22 @@ public interface GeneratedDocumentRepository extends JpaRepository<GeneratedDocu
     Optional<GeneratedDocument> findByDocumentTypeAndLancamento_Id(DocumentTemplateType documentType, Long lancamentoId);
 
     void deleteByContract_Id(Long contractId);
+
+    /** Só id, arquivo e versão (projeção): serve para registrar na auditoria sem carregar o PDF (LONGBLOB). */
+    interface DocumentoResumo {
+        Long getId();
+
+        String getFileName();
+
+        int getVersion();
+    }
+
+    List<DocumentoResumo> findByLancamento_Id(Long lancamentoId);
+
+    /** EXC-10: apaga os documentos (o ateste) ligados ao lançamento, antes de o lançamento ser excluído de verdade. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("delete from GeneratedDocument d where d.lancamento.id = :lancamentoId")
+    int excluirPorLancamento(@Param("lancamentoId") Long lancamentoId);
 
     /** Documentos gerados do contrato para a linha do tempo. Seleciona só as colunas leves: nunca carrega o PDF (LONGBLOB). */
     @Query("""
