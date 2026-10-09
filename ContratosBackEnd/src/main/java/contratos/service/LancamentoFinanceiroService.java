@@ -13,6 +13,7 @@ import contratos.domain.enums.AuditEntityType;
 import contratos.domain.enums.TipoEventoLancamento;
 import contratos.exception.ConflictException;
 import contratos.repository.ContractRepository;
+import contratos.repository.GeneratedDocumentRepository;
 import contratos.repository.LancamentoFinanceiroHistoricoRepository;
 import contratos.repository.LancamentoFinanceiroRepository;
 import contratos.repository.UserRepository;
@@ -42,6 +43,7 @@ public class LancamentoFinanceiroService {
     private final UserRepository userRepository;
     private final ContractAuthorization authorization;
     private final AuditService auditService;
+    private final GeneratedDocumentRepository generatedDocumentRepository;
 
     // READ_COMMITTED + trava do contrato: quem chega depois espera e já enxerga o saldo atualizado
     // (no REPEATABLE READ padrão do MySQL ele leria um saldo antigo e poderia estourar o contrato).
@@ -150,9 +152,21 @@ public class LancamentoFinanceiroService {
 
         // Exclusão híbrida: nunca editado -> DELETE físico, sem histórico próprio, nota fiscal liberada.
         if (!historicoRepository.existsByLancamento_Id(lancamentoId)) {
+            // EXC-10: o ateste gerado para este lançamento (FK generated_document.lancamento_id) é excluído junto.
+            // O que fica registrado é a auditoria: uma linha para o lançamento e uma para cada documento apagado.
+            var atestes = generatedDocumentRepository.findByLancamento_Id(lancamentoId);
+            generatedDocumentRepository.excluirPorLancamento(lancamentoId);
             repository.delete(lancamento);
+
+            detalhes.note("Exclusão definitiva (nunca havia sido editado; a nota fiscal fica livre)");
+            atestes.forEach(ateste -> detalhes.note("Ateste excluído junto: " + ateste.getFileName() + " (v" + ateste.getVersion() + ")"));
             auditService.record(usuario, AuditAction.DELETE, AuditEntityType.LANCAMENTO, lancamentoId, contrato.getId(), resumo,
-                    detalhes.note("Exclusão definitiva (nunca havia sido editado; a nota fiscal fica livre)").build());
+                    detalhes.build());
+            atestes.forEach(ateste -> auditService.record(usuario, AuditAction.DELETE, AuditEntityType.DOCUMENT, ateste.getId(),
+                    contrato.getId(), "Ateste excluído junto com o lançamento do contrato " + contrato.getNumberContract()
+                            + ": NF " + lancamento.getNotaFiscal() + " (v" + ateste.getVersion() + ")",
+                    new AuditChangeLog().note("Arquivo: " + ateste.getFileName())
+                            .note("Motivo: exclusão definitiva do lançamento (nunca havia sido editado)").build()));
             return;
         }
 
