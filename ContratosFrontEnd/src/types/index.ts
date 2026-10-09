@@ -34,7 +34,7 @@ export type ContractStatus = "EM_VIGENCIA" | "AGUARDANDO_EMAIL_INTERESSE" | "EMA
 
 export type ContractStatusTrigger = "DEADLINE" | "INTEREST_EMAIL_GENERATED" | "TECHNICAL_OPINION_GENERATED" | "ADITIVO_REGISTRADO" | "CONTRACT_EDITED";
 
-export type ContractTimelineEventType = "STATUS_CHANGED" | "DOCUMENT_GENERATED" | "ATTACHMENT_UPLOADED" | "ATTACHMENT_REMOVED";
+export type ContractTimelineEventType = "STATUS_CHANGED" | "DOCUMENT_GENERATED" | "ATTACHMENT_UPLOADED" | "ATTACHMENT_REMOVED" | "LANCAMENTO_DELETED" | "DOCUMENT_DELETED";
 
 /** Evento da linha do tempo do contrato; só os campos do respectivo `type` vêm preenchidos. `actorName` nulo = sistema. */
 export interface ContractTimelineEvent {
@@ -48,6 +48,7 @@ export interface ContractTimelineEvent {
   version: number | null;
   fileName: string | null;
   attType: AttachmentType | null;
+  description: string | null;
 }
 
 export type DocumentTemplateType = "INTEREST_EMAIL" | "TECHNICAL_OPINION" | "SUPPLIER_RENEWAL_EMAIL" | "PAYMENT_CHECKLIST";
