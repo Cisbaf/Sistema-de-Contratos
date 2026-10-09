@@ -244,7 +244,7 @@ export default function ContractFinancialDrawer({ open, contract, onClose }: {
     <ConfirmDialog
       open={Boolean(removing)}
       title="Excluir lançamento?"
-      text={`A nota fiscal ${removing?.notaFiscal ?? ""} (${removing ? money.format(removing.valorNota) : ""}) será removida e o valor volta para o saldo do contrato. Se ela já foi editada antes, a exclusão fica registrada no histórico e o número da nota não pode ser reutilizado.`}
+      text={`A nota fiscal ${removing?.notaFiscal ?? ""} (${removing ? money.format(removing.valorNota) : ""}) será removida e o valor volta para o saldo do contrato. Se ela nunca foi editada, a exclusão é definitiva: o ateste já gerado para ela também é excluído, o número da nota pode ser reutilizado e a exclusão fica registrada na Auditoria. Se já foi editada, a exclusão fica no histórico do lançamento, o ateste é mantido e o número da nota não pode ser reutilizado.`}
       onClose={() => setRemoving(null)}
       onConfirm={() => void remove()}
     />

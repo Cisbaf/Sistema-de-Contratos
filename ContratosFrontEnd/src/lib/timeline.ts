@@ -46,5 +46,9 @@ export function describeTimelineEvent(event: ContractTimelineEvent): { title: st
       return { title: "Anexo enviado", detail: event.fileName ?? "" };
     case "ATTACHMENT_REMOVED":
       return { title: "Anexo removido", detail: event.fileName ?? "" };
+    case "LANCAMENTO_DELETED":
+      return { title: "Lançamento excluído", detail: event.description ?? "" };
+    case "DOCUMENT_DELETED":
+      return { title: "Documento excluído (ateste do lançamento)", detail: event.description ?? "" };
   }
 }

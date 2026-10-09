@@ -20,6 +20,8 @@ const icones: Record<ContractTimelineEvent["type"], ReactNode> = {
     DOCUMENT_GENERATED: <DescriptionOutlined fontSize="small" />,
     ATTACHMENT_UPLOADED: <AttachFileOutlined fontSize="small" />,
     ATTACHMENT_REMOVED: <DeleteOutline fontSize="small" />,
+    LANCAMENTO_DELETED: <DeleteOutline fontSize="small" />,
+    DOCUMENT_DELETED: <DeleteOutline fontSize="small" />,
 };
 
 export default function ContractTimelineDialog({ open, contract, onClose }: {
